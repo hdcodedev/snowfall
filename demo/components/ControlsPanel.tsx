@@ -6,7 +6,7 @@ export default function ControlsPanel() {
     const { physicsConfig, updatePhysicsConfig } = useSnowfall();
 
     return (
-        <div className="fixed top-28 right-4 z-[10000] w-80 max-h-[calc(100vh-120px)] overflow-y-auto bg-white/5 dark:bg-black/5 backdrop-blur-sm border border-white/20 dark:border-gray-700/20 rounded-lg shadow-xl p-4 space-y-4">
+        <div className="fixed top-28 right-4 z-[10000] w-80 max-h-[calc(100vh-120px)] overflow-y-auto no-scrollbar bg-white/5 dark:bg-black/5 backdrop-blur-sm border border-white/20 dark:border-gray-700/20 rounded-lg shadow-xl p-4 space-y-4">
             <div className="flex items-center mb-4">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">Physics Controls</h3>
             </div>
