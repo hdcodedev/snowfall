@@ -1,6 +1,6 @@
 {
     "name": "@hdcodedev/snowfall",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Realistic snowfall effect for React with physics-based accumulation on surfaces. Features melting, wind, and smart surface detection.",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
