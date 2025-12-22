@@ -4,8 +4,11 @@ import {
     TAG_HEADER, TAG_FOOTER, ROLE_BANNER, ROLE_CONTENTINFO
 } from './constants';
 
-const BOTTOM_TAGS = [TAG_HEADER, TAG_FOOTER];
-const BOTTOM_ROLES = [ROLE_BANNER, ROLE_CONTENTINFO];
+// Headers: snow accumulates on BOTTOM edge
+// Footers: default to TOP surface (snow piles on top)
+// Use data-snowfall attributes to override this behavior
+const BOTTOM_TAGS = [TAG_HEADER];
+const BOTTOM_ROLES = [ROLE_BANNER];
 
 const AUTO_DETECT_TAGS = ['header', 'footer', 'article', 'section', 'aside', 'nav'];
 const AUTO_DETECT_ROLES = ['[role="banner"]', '[role="contentinfo"]', '[role="main"]'];
@@ -21,6 +24,7 @@ export const getElementType = (el: Element): SnowfallSurface => {
     const role = el.getAttribute('role');
     if (role && BOTTOM_ROLES.includes(role)) return VAL_BOTTOM;
 
+    // Default: snow accumulates on top of elements (natural physics)
     return VAL_TOP;
 };
 

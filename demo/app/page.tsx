@@ -46,7 +46,7 @@ function App() {
 
       {/* Footer */}
       <footer className="container mx-auto px-4 pb-8">
-        <div data-snowfall="card" className="text-center p-8 rounded-2xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm shadow-xl">
+        <div className="text-center p-8 rounded-2xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm shadow-xl">
           <p className="text-gray-600 dark:text-gray-300 flex items-center justify-center gap-1">
             Made with ❄️ by{' '}
             <a

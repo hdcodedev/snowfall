@@ -41,39 +41,69 @@ export default function App() {
     <SnowfallProvider>
       <Snowfall />
 
-      {/* Auto-detected: Semantic tags */}
+      {/* Auto-detected: Headers accumulate snow on BOTTOM */}
       <header>
         <h1>My Site</h1>
       </header>
       
+      {/* Auto-detected: Footers accumulate snow on TOP (natural piling) */}
+      <footer>
+        <p>© 2025</p>
+      </footer>
+      
       {/* Manual: Force accumulation on any element */}
       <div data-snowfall="top">
         <h2>Custom Element</h2>
+      </div>
+      
+      {/* Disable accumulation on specific elements */}
+      <div data-snowfall="ignore">
+        <p>No snow here</p>
       </div>
     </SnowfallProvider>
   );
 }
 ```
 
+### Surface Types
+
+- **`data-snowfall="top"`** (default for most elements): Snow accumulates on the top edge, piling downward
+- **`data-snowfall="bottom"`** (default for `<header>` tags): Snow accumulates on the bottom edge
+- **`data-snowfall="ignore"`**: Prevents snow accumulation on the element
+
+By default:
+- `<header>` and `role="banner"` → Bottom accumulation
+- `<footer>` and other elements → Top accumulation (natural piling)
+
 ## Customization
 
-The snowfall physics can be customized by modifying the `SNOW_PHYSICS` constant:
+You can customize physics via the `SnowfallProvider`:
 
-```typescript
-const SNOW_PHYSICS = {
+```tsx
+import { SnowfallProvider, DEFAULT_PHYSICS } from '@hdcodedev/snowfall';
+
+const customPhysics = {
+  ...DEFAULT_PHYSICS,
   MAX_FLAKES: 500,              // Maximum number of snowflakes
   MELT_SPEED: 0.00005,          // How fast snow melts (lower = lasts longer)
+  WIND_STRENGTH: 1.5,           // Wind intensity
   ACCUMULATION: {
-    SIDE_RATE: 1.2,             // Accumulation rate on sides
-    TOP_CARD_RATE: 1.9,         // Accumulation rate on card tops
-    TOP_HEADER_RATE: 1.2,       // Accumulation rate on header tops
+    SIDE_RATE: 1.0,             // Accumulation rate on sides
+    TOP_RATE: 5.0,              // Accumulation rate on top surfaces
+    BOTTOM_RATE: 5.0,           // Accumulation rate on bottom surfaces (headers)
   },
   MAX_DEPTH: {
-    CARD_TOP: 50,               // Max snow height on cards (px)
-    HEADER_TOP: 25,             // Max snow height on headers (px)
-    CARD_SIDE: 8,               // Max snow width on card sides (px)
+    TOP: 100,                   // Max snow height on top surfaces (px)
+    BOTTOM: 50,                 // Max snow height on bottom surfaces (px)
+    SIDE: 20,                   // Max snow width on sides (px)
+  },
+  FLAKE_SIZE: {
+    MIN: 0.5,                   // Minimum flake radius
+    MAX: 1.6,                   // Maximum flake radius
   }
 };
+
+// Then use it in your provider - see API section below
 ```
 
 ## API
@@ -97,8 +127,11 @@ Hook to access snowfall controls. Must be used within `SnowfallProvider`.
 **Returns:**
 ```typescript
 {
-  isEnabled: boolean;        // Current enabled state
-  toggleSnow: () => void;    // Function to toggle snow on/off
+  isEnabled: boolean;                           // Current enabled state
+  toggleSnow: () => void;                       // Function to toggle snow on/off
+  physicsConfig: PhysicsConfig;                 // Current physics configuration
+  updatePhysicsConfig: (config: Partial<PhysicsConfig>) => void;  // Update physics
+  resetPhysics: () => void;                     // Reset to default physics
 }
 ```
 
