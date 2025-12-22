@@ -1,0 +1,59 @@
+{
+    "name": "@hdcodedev/snowfall",
+    "version": "0.1.0",
+    "description": "Realistic snowfall effect for React with physics-based accumulation on surfaces. Features melting, wind, and smart surface detection.",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+        "react",
+        "snow",
+        "snowfall",
+        "canvas",
+        "winter",
+        "christmas",
+        "accumulation",
+        "physics",
+        "animation",
+        "holiday"
+    ],
+    "author": "hdcodedev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/hdcodedev/snowfall.git"
+    },
+    "bugs": {
+        "url": "https://github.com/hdcodedev/snowfall/issues"
+    },
+    "homepage": "https://github.com/hdcodedev/snowfall#readme",
+    "license": "MIT",
+    "peerDependencies": {
+        "react": "^18.0.0 || ^19.0.0",
+        "react-dom": "^18.0.0 || ^19.0.0"
+    },
+    "devDependencies": {
+        "@types/react": "^18.3.12",
+        "@types/react-dom": "^18.3.1",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "tsup": "^8.3.5",
+        "typescript": "^5.7.2"
+    }
+}
