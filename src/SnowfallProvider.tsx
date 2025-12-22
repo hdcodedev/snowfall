@@ -23,22 +23,22 @@ export interface PhysicsConfig {
 }
 
 export const DEFAULT_PHYSICS: PhysicsConfig = {
-    MAX_FLAKES: 500,
-    MELT_SPEED: 0.00005,
-    WIND_STRENGTH: 0.8,
+    MAX_FLAKES: 1000,
+    MELT_SPEED: 0.00001,
+    WIND_STRENGTH: 1.5,
     ACCUMULATION: {
-        SIDE_RATE: 1.2,
-        TOP_RATE: 1.9,
-        BOTTOM_RATE: 1.2,
+        SIDE_RATE: 1,
+        TOP_RATE: 5,
+        BOTTOM_RATE: 5.0,
     },
     MAX_DEPTH: {
-        TOP: 50,
-        BOTTOM: 25,
-        SIDE: 8,
+        TOP: 100,
+        BOTTOM: 50,
+        SIDE: 20,
     },
     FLAKE_SIZE: {
         MIN: 0.5,
-        MAX: 2.5,
+        MAX: 1.6,
     }
 };
 
