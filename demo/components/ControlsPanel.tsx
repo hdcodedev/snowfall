@@ -57,6 +57,46 @@ export default function ControlsPanel() {
                         className="w-full"
                     />
                 </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        Flake Size Min: {physicsConfig.FLAKE_SIZE?.MIN?.toFixed(1) || 0.5}
+                    </label>
+                    <input
+                        type="range"
+                        min="0.1"
+                        max="3"
+                        step="0.1"
+                        value={physicsConfig.FLAKE_SIZE?.MIN || 0.5}
+                        onChange={(e) => updatePhysicsConfig({
+                            FLAKE_SIZE: {
+                                MIN: parseFloat(e.target.value),
+                                MAX: physicsConfig.FLAKE_SIZE?.MAX || 2.5
+                            }
+                        })}
+                        className="w-full"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        Flake Size Max: {physicsConfig.FLAKE_SIZE?.MAX?.toFixed(1) || 2.5}
+                    </label>
+                    <input
+                        type="range"
+                        min="0.1"
+                        max="5"
+                        step="0.1"
+                        value={physicsConfig.FLAKE_SIZE?.MAX || 2.5}
+                        onChange={(e) => updatePhysicsConfig({
+                            FLAKE_SIZE: {
+                                MIN: physicsConfig.FLAKE_SIZE?.MIN || 0.5,
+                                MAX: parseFloat(e.target.value)
+                            }
+                        })}
+                        className="w-full"
+                    />
+                </div>
             </div>
 
             {/* Accumulation Rates */}

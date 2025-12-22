@@ -16,6 +16,10 @@ export interface PhysicsConfig {
         HEADER_TOP: number;
         CARD_SIDE: number;
     };
+    FLAKE_SIZE: {
+        MIN: number;
+        MAX: number;
+    };
 }
 
 export const DEFAULT_PHYSICS: PhysicsConfig = {
@@ -31,6 +35,10 @@ export const DEFAULT_PHYSICS: PhysicsConfig = {
         CARD_TOP: 50,
         HEADER_TOP: 25,
         CARD_SIDE: 8,
+    },
+    FLAKE_SIZE: {
+        MIN: 0.5,
+        MAX: 2.5,
     }
 };
 
@@ -63,6 +71,10 @@ export function SnowfallProvider({ children }: { children: ReactNode }) {
             MAX_DEPTH: {
                 ...prev.MAX_DEPTH,
                 ...(config.MAX_DEPTH || {}),
+            },
+            FLAKE_SIZE: {
+                ...prev.FLAKE_SIZE,
+                ...(config.FLAKE_SIZE || {}),
             },
         }));
     };
