@@ -9,7 +9,8 @@ export const createSnowflake = (
     isBackground: boolean = false
 ): Snowflake => {
     if (isBackground) {
-        const radius = Math.random() * 0.8 + 0.3;
+        const sizeRatio = Math.random();
+        const radius = config.FLAKE_SIZE.MIN * 0.6 + sizeRatio * (config.FLAKE_SIZE.MAX - config.FLAKE_SIZE.MIN) * 0.4;
         return {
             x: Math.random() * canvasWidth,
             y: window.scrollY - 5,
@@ -19,9 +20,12 @@ export const createSnowflake = (
             opacity: Math.random() * 0.2 + 0.2,
             wobble: Math.random() * Math.PI * 2,
             wobbleSpeed: Math.random() * 0.015 + 0.005,
+            sizeRatio,
+            isBackground: true
         };
     } else {
-        const radius = Math.random() * 2 + 0.5;
+        const sizeRatio = Math.random();
+        const radius = config.FLAKE_SIZE.MIN + sizeRatio * (config.FLAKE_SIZE.MAX - config.FLAKE_SIZE.MIN);
         return {
             x: Math.random() * canvasWidth,
             y: window.scrollY - 5,
@@ -31,6 +35,8 @@ export const createSnowflake = (
             opacity: Math.random() * 0.3 + 0.5,
             wobble: Math.random() * Math.PI * 2,
             wobbleSpeed: Math.random() * 0.02 + 0.01,
+            sizeRatio,
+            isBackground: false
         };
     }
 };
