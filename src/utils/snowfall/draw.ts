@@ -138,6 +138,8 @@ export const drawSideAccumulations = (
         const drawSide = (sideArray: number[], isLeft: boolean) => {
             targetCtx.beginPath();
             const baseX = isLeft ? rect.left : rect.right;
+
+            // Start at the top of the element
             targetCtx.moveTo(baseX + dx, rect.top + dy);
 
             for (let y = 0; y < sideArray.length; y += 2) {
@@ -145,14 +147,23 @@ export const drawSideAccumulations = (
                 const nextY = Math.min(y + 2, sideArray.length - 1);
                 const nextWidth = sideArray[nextY] || 0;
 
+                // Apply gravity influence: snow accumulates more towards the bottom
+                // Quadratic falloff makes accumulation stronger at the bottom
+                const heightRatio = y / sideArray.length;
+                const gravityMultiplier = Math.pow(heightRatio, 1.5); // Heavy bias towards bottom
+
                 const py = rect.top + y + dy;
-                const px = (isLeft ? baseX - width : baseX + width) + dx;
+                const px = (isLeft ? baseX - (width * gravityMultiplier) : baseX + (width * gravityMultiplier)) + dx;
                 const ny = rect.top + nextY + dy;
-                const nx = (isLeft ? baseX - nextWidth : baseX + nextWidth) + dx;
+                const nRatio = nextY / sideArray.length;
+                const nGravityMultiplier = Math.pow(nRatio, 1.5);
+                const nx = (isLeft ? baseX - (nextWidth * nGravityMultiplier) : baseX + (nextWidth * nGravityMultiplier)) + dx;
 
                 targetCtx.lineTo(px, py);
                 targetCtx.lineTo(nx, ny);
             }
+
+            // Close at the bottom
             targetCtx.lineTo(baseX + dx, rect.bottom + dy);
             targetCtx.closePath();
             targetCtx.fill();
