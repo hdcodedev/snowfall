@@ -1,8 +1,10 @@
-# @hdcodedev/snowfall
+# [@hdcodedev/snowfall](https://www.next-snowfall.vercel.app)
 
 A realistic snowfall effect for React with physics-based accumulation on surfaces. Features melting, wind, and smart surface detection.
 
-![ScreenRecording2025-12-22at21 55 51-ezgif com-optimize-2](https://github.com/user-attachments/assets/e8e6b910-d996-4386-b76e-43d087440708)
+![ScreenRecording2025-12-23at00 07 30-ezgif com-optimize](https://github.com/user-attachments/assets/49c4a537-7f04-4043-806e-21478f419dd7)
+
+
 
 ## Features
 
@@ -134,10 +136,6 @@ Hook to access snowfall controls. Must be used within `SnowfallProvider`.
   resetPhysics: () => void;                     // Reset to default physics
 }
 ```
-
-## Demo
-
-Check out the [live demo](https://snowfall-2026.vercel.app)
 
 ## Tips
 
