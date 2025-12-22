@@ -70,7 +70,7 @@ export const initializeAccumulation = (
         }
 
         const height = Math.ceil(rect.height);
-        const baseMax = isBottom ? config.MAX_DEPTH.HEADER_TOP : config.MAX_DEPTH.CARD_TOP;
+        const baseMax = isBottom ? config.MAX_DEPTH.BOTTOM : config.MAX_DEPTH.TOP;
 
         const styles = window.getComputedStyle(el);
         const borderRadius = parseFloat(styles.borderTopLeftRadius) || 0;
@@ -103,7 +103,7 @@ export const initializeAccumulation = (
             maxHeights,
             leftSide: existing?.leftSide.length === height ? existing.leftSide : new Array(height).fill(0),
             rightSide: existing?.rightSide.length === height ? existing.rightSide : new Array(height).fill(0),
-            maxSideHeight: isBottom ? 0 : config.MAX_DEPTH.CARD_SIDE,
+            maxSideHeight: isBottom ? 0 : config.MAX_DEPTH.SIDE,
             borderRadius,
             type,
             isFixed,
@@ -200,7 +200,7 @@ export const updateSnowflakes = (
                     if (shouldAccumulate) {
                         const baseSpread = Math.ceil(flake.radius);
                         const spread = baseSpread + Math.floor(Math.random() * 2);
-                        const accumRate = isBottom ? config.ACCUMULATION.TOP_HEADER_RATE : config.ACCUMULATION.TOP_CARD_RATE;
+                        const accumRate = isBottom ? config.ACCUMULATION.BOTTOM_RATE : config.ACCUMULATION.TOP_RATE;
                         const centerOffset = Math.floor(Math.random() * 3) - 1;
 
                         for (let dx = -spread; dx <= spread; dx++) {

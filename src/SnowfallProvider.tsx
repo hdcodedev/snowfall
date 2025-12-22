@@ -8,13 +8,13 @@ export interface PhysicsConfig {
     WIND_STRENGTH: number;
     ACCUMULATION: {
         SIDE_RATE: number;
-        TOP_CARD_RATE: number;
-        TOP_HEADER_RATE: number;
+        TOP_RATE: number;
+        BOTTOM_RATE: number;
     };
     MAX_DEPTH: {
-        CARD_TOP: number;
-        HEADER_TOP: number;
-        CARD_SIDE: number;
+        TOP: number;
+        BOTTOM: number;
+        SIDE: number;
     };
     FLAKE_SIZE: {
         MIN: number;
@@ -28,13 +28,13 @@ export const DEFAULT_PHYSICS: PhysicsConfig = {
     WIND_STRENGTH: 0.8,
     ACCUMULATION: {
         SIDE_RATE: 1.2,
-        TOP_CARD_RATE: 1.9,
-        TOP_HEADER_RATE: 1.2,
+        TOP_RATE: 1.9,
+        BOTTOM_RATE: 1.2,
     },
     MAX_DEPTH: {
-        CARD_TOP: 50,
-        HEADER_TOP: 25,
-        CARD_SIDE: 8,
+        TOP: 50,
+        BOTTOM: 25,
+        SIDE: 8,
     },
     FLAKE_SIZE: {
         MIN: 0.5,

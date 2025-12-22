@@ -143,26 +143,26 @@ export default function ControlsPanel() {
                                 />
                             </ControlRow>
 
-                            <ControlRow label={`Top Card Rate: ${physicsConfig.ACCUMULATION.TOP_CARD_RATE.toFixed(1)}`}>
+                            <ControlRow label={`Top Rate: ${physicsConfig.ACCUMULATION.TOP_RATE.toFixed(1)}`}>
                                 <WinterSlider
                                     min="0"
                                     max="5"
                                     step="0.1"
-                                    value={physicsConfig.ACCUMULATION.TOP_CARD_RATE}
+                                    value={physicsConfig.ACCUMULATION.TOP_RATE}
                                     onChange={(e) => updatePhysicsConfig({
-                                        ACCUMULATION: { ...physicsConfig.ACCUMULATION, TOP_CARD_RATE: parseFloat(e.target.value) }
+                                        ACCUMULATION: { ...physicsConfig.ACCUMULATION, TOP_RATE: parseFloat(e.target.value) }
                                     })}
                                 />
                             </ControlRow>
 
-                            <ControlRow label={`Top Header Rate: ${physicsConfig.ACCUMULATION.TOP_HEADER_RATE.toFixed(1)}`}>
+                            <ControlRow label={`Bottom Rate: ${physicsConfig.ACCUMULATION.BOTTOM_RATE.toFixed(1)}`}>
                                 <WinterSlider
                                     min="0"
                                     max="5"
                                     step="0.1"
-                                    value={physicsConfig.ACCUMULATION.TOP_HEADER_RATE}
+                                    value={physicsConfig.ACCUMULATION.BOTTOM_RATE}
                                     onChange={(e) => updatePhysicsConfig({
-                                        ACCUMULATION: { ...physicsConfig.ACCUMULATION, TOP_HEADER_RATE: parseFloat(e.target.value) }
+                                        ACCUMULATION: { ...physicsConfig.ACCUMULATION, BOTTOM_RATE: parseFloat(e.target.value) }
                                     })}
                                 />
                             </ControlRow>
@@ -174,38 +174,38 @@ export default function ControlsPanel() {
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Max Depths (px)</h4>
 
                         <div className="space-y-3">
-                            <ControlRow label={`Card Top: ${physicsConfig.MAX_DEPTH.CARD_TOP}`}>
+                            <ControlRow label={`Top: ${physicsConfig.MAX_DEPTH.TOP}`}>
                                 <WinterSlider
                                     min="0"
                                     max="100"
                                     step="5"
-                                    value={physicsConfig.MAX_DEPTH.CARD_TOP}
+                                    value={physicsConfig.MAX_DEPTH.TOP}
                                     onChange={(e) => updatePhysicsConfig({
-                                        MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, CARD_TOP: parseInt(e.target.value) }
+                                        MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, TOP: parseInt(e.target.value) }
                                     })}
                                 />
                             </ControlRow>
 
-                            <ControlRow label={`Header Top: ${physicsConfig.MAX_DEPTH.HEADER_TOP}`}>
+                            <ControlRow label={`Bottom: ${physicsConfig.MAX_DEPTH.BOTTOM}`}>
                                 <WinterSlider
                                     min="0"
                                     max="50"
                                     step="5"
-                                    value={physicsConfig.MAX_DEPTH.HEADER_TOP}
+                                    value={physicsConfig.MAX_DEPTH.BOTTOM}
                                     onChange={(e) => updatePhysicsConfig({
-                                        MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, HEADER_TOP: parseInt(e.target.value) }
+                                        MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, BOTTOM: parseInt(e.target.value) }
                                     })}
                                 />
                             </ControlRow>
 
-                            <ControlRow label={`Card Side: ${physicsConfig.MAX_DEPTH.CARD_SIDE}`}>
+                            <ControlRow label={`Side: ${physicsConfig.MAX_DEPTH.SIDE}`}>
                                 <WinterSlider
                                     min="0"
                                     max="20"
                                     step="1"
-                                    value={physicsConfig.MAX_DEPTH.CARD_SIDE}
+                                    value={physicsConfig.MAX_DEPTH.SIDE}
                                     onChange={(e) => updatePhysicsConfig({
-                                        MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, CARD_SIDE: parseInt(e.target.value) }
+                                        MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, SIDE: parseInt(e.target.value) }
                                     })}
                                 />
                             </ControlRow>
