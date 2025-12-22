@@ -1,6 +1,56 @@
 'use client';
 
 import { useSnowfall } from '@hdcodedev/snowfall';
+import React from 'react';
+
+function WinterSlider(props: React.InputHTMLAttributes<HTMLInputElement>) {
+    return (
+        <input
+            {...props}
+            type="range"
+            style={{ '--thumb-icon': `url('/snowflake.svg')` } as React.CSSProperties}
+            className={`
+                w-full h-1.5 rounded-lg appearance-none cursor-pointer
+                bg-gradient-to-r from-blue-200/30 via-white/50 to-blue-200/30
+                border border-white/20 backdrop-blur-sm shadow-[0_0_10px_rgba(186,230,253,0.2)]
+                
+                [&::-webkit-slider-thumb]:appearance-none
+                [&::-webkit-slider-thumb]:w-6
+                [&::-webkit-slider-thumb]:h-6
+                [&::-webkit-slider-thumb]:bg-transparent
+                [&::-webkit-slider-thumb]:[background-image:var(--thumb-icon)]
+                [&::-webkit-slider-thumb]:bg-[length:100%_100%]
+                [&::-webkit-slider-thumb]:bg-center
+                [&::-webkit-slider-thumb]:bg-no-repeat
+                [&::-webkit-slider-thumb]:transition-all
+                [&::-webkit-slider-thumb]:hover:scale-125
+                [&::-webkit-slider-thumb]:active:scale-95
+
+                [&::-moz-range-thumb]:appearance-none
+                [&::-moz-range-thumb]:w-6
+                [&::-moz-range-thumb]:h-6
+                [&::-moz-range-thumb]:border-none
+                [&::-moz-range-thumb]:bg-transparent
+                [&::-moz-range-thumb]:[background-image:var(--thumb-icon)]
+                [&::-moz-range-thumb]:bg-[length:100%_100%]
+                [&::-moz-range-thumb]:bg-center
+                [&::-moz-range-thumb]:bg-no-repeat
+                [&::-moz-range-thumb]:transition-all
+                [&::-moz-range-thumb]:hover:scale-125
+                [&::-moz-range-thumb]:active:scale-95
+            `}
+        />
+    );
+}
+
+const ControlRow = ({ label, children }: { label: React.ReactNode, children: React.ReactNode }) => (
+    <div>
+        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+            {label}
+        </label>
+        {children}
+    </div>
+);
 
 export default function ControlsPanel() {
     const { physicsConfig, updatePhysicsConfig } = useSnowfall();
@@ -15,57 +65,38 @@ export default function ControlsPanel() {
 
                     {/* Snowflake Controls */}
                     <div className="space-y-3">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                Max Flakes: {physicsConfig.MAX_FLAKES}
-                            </label>
-                            <input
-                                type="range"
+                        <ControlRow label={`Max Flakes: ${physicsConfig.MAX_FLAKES}`}>
+                            <WinterSlider
                                 min="0"
                                 max="1000"
                                 step="50"
                                 value={physicsConfig.MAX_FLAKES}
                                 onChange={(e) => updatePhysicsConfig({ MAX_FLAKES: parseInt(e.target.value) })}
-                                className="w-full"
                             />
-                        </div>
+                        </ControlRow>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                Melt Speed: {(physicsConfig.MELT_SPEED * 10000).toFixed(1)}
-                            </label>
-                            <input
-                                type="range"
+                        <ControlRow label={`Melt Speed: ${(physicsConfig.MELT_SPEED * 10000).toFixed(1)}`}>
+                            <WinterSlider
                                 min="0"
                                 max="10"
                                 step="0.1"
                                 value={physicsConfig.MELT_SPEED * 10000}
                                 onChange={(e) => updatePhysicsConfig({ MELT_SPEED: parseFloat(e.target.value) / 10000 })}
-                                className="w-full"
                             />
-                        </div>
+                        </ControlRow>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                Wind Strength: {physicsConfig.WIND_STRENGTH.toFixed(1)}
-                            </label>
-                            <input
-                                type="range"
+                        <ControlRow label={`Wind Strength: ${physicsConfig.WIND_STRENGTH.toFixed(1)}`}>
+                            <WinterSlider
                                 min="0"
                                 max="3"
                                 step="0.1"
                                 value={physicsConfig.WIND_STRENGTH}
                                 onChange={(e) => updatePhysicsConfig({ WIND_STRENGTH: parseFloat(e.target.value) })}
-                                className="w-full"
                             />
-                        </div>
+                        </ControlRow>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                Flake Size Min: {physicsConfig.FLAKE_SIZE?.MIN?.toFixed(1) || 0.5}
-                            </label>
-                            <input
-                                type="range"
+                        <ControlRow label={`Flake Size Min: ${physicsConfig.FLAKE_SIZE?.MIN?.toFixed(1) || 0.5}`}>
+                            <WinterSlider
                                 min="0.1"
                                 max="3"
                                 step="0.1"
@@ -76,16 +107,11 @@ export default function ControlsPanel() {
                                         MAX: physicsConfig.FLAKE_SIZE?.MAX || 2.5
                                     }
                                 })}
-                                className="w-full"
                             />
-                        </div>
+                        </ControlRow>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                Flake Size Max: {physicsConfig.FLAKE_SIZE?.MAX?.toFixed(1) || 2.5}
-                            </label>
-                            <input
-                                type="range"
+                        <ControlRow label={`Flake Size Max: ${physicsConfig.FLAKE_SIZE?.MAX?.toFixed(1) || 2.5}`}>
+                            <WinterSlider
                                 min="0.1"
                                 max="5"
                                 step="0.1"
@@ -96,9 +122,8 @@ export default function ControlsPanel() {
                                         MAX: parseFloat(e.target.value)
                                     }
                                 })}
-                                className="w-full"
                             />
-                        </div>
+                        </ControlRow>
                     </div>
 
                     {/* Accumulation Rates */}
@@ -106,12 +131,8 @@ export default function ControlsPanel() {
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Accumulation Rates</h4>
 
                         <div className="space-y-3">
-                            <div>
-                                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
-                                    Side Rate: {physicsConfig.ACCUMULATION.SIDE_RATE.toFixed(1)}
-                                </label>
-                                <input
-                                    type="range"
+                            <ControlRow label={`Side Rate: ${physicsConfig.ACCUMULATION.SIDE_RATE.toFixed(1)}`}>
+                                <WinterSlider
                                     min="0"
                                     max="5"
                                     step="0.1"
@@ -119,16 +140,11 @@ export default function ControlsPanel() {
                                     onChange={(e) => updatePhysicsConfig({
                                         ACCUMULATION: { ...physicsConfig.ACCUMULATION, SIDE_RATE: parseFloat(e.target.value) }
                                     })}
-                                    className="w-full"
                                 />
-                            </div>
+                            </ControlRow>
 
-                            <div>
-                                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
-                                    Card Top Rate: {physicsConfig.ACCUMULATION.TOP_CARD_RATE.toFixed(1)}
-                                </label>
-                                <input
-                                    type="range"
+                            <ControlRow label={`Top Card Rate: ${physicsConfig.ACCUMULATION.TOP_CARD_RATE.toFixed(1)}`}>
+                                <WinterSlider
                                     min="0"
                                     max="5"
                                     step="0.1"
@@ -136,16 +152,11 @@ export default function ControlsPanel() {
                                     onChange={(e) => updatePhysicsConfig({
                                         ACCUMULATION: { ...physicsConfig.ACCUMULATION, TOP_CARD_RATE: parseFloat(e.target.value) }
                                     })}
-                                    className="w-full"
                                 />
-                            </div>
+                            </ControlRow>
 
-                            <div>
-                                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
-                                    Header Top Rate: {physicsConfig.ACCUMULATION.TOP_HEADER_RATE.toFixed(1)}
-                                </label>
-                                <input
-                                    type="range"
+                            <ControlRow label={`Top Header Rate: ${physicsConfig.ACCUMULATION.TOP_HEADER_RATE.toFixed(1)}`}>
+                                <WinterSlider
                                     min="0"
                                     max="5"
                                     step="0.1"
@@ -153,9 +164,8 @@ export default function ControlsPanel() {
                                     onChange={(e) => updatePhysicsConfig({
                                         ACCUMULATION: { ...physicsConfig.ACCUMULATION, TOP_HEADER_RATE: parseFloat(e.target.value) }
                                     })}
-                                    className="w-full"
                                 />
-                            </div>
+                            </ControlRow>
                         </div>
                     </div>
 
@@ -164,12 +174,8 @@ export default function ControlsPanel() {
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Max Depths (px)</h4>
 
                         <div className="space-y-3">
-                            <div>
-                                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
-                                    Card Top: {physicsConfig.MAX_DEPTH.CARD_TOP}
-                                </label>
-                                <input
-                                    type="range"
+                            <ControlRow label={`Card Top: ${physicsConfig.MAX_DEPTH.CARD_TOP}`}>
+                                <WinterSlider
                                     min="0"
                                     max="100"
                                     step="5"
@@ -177,16 +183,11 @@ export default function ControlsPanel() {
                                     onChange={(e) => updatePhysicsConfig({
                                         MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, CARD_TOP: parseInt(e.target.value) }
                                     })}
-                                    className="w-full"
                                 />
-                            </div>
+                            </ControlRow>
 
-                            <div>
-                                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
-                                    Header Top: {physicsConfig.MAX_DEPTH.HEADER_TOP}
-                                </label>
-                                <input
-                                    type="range"
+                            <ControlRow label={`Header Top: ${physicsConfig.MAX_DEPTH.HEADER_TOP}`}>
+                                <WinterSlider
                                     min="0"
                                     max="50"
                                     step="5"
@@ -194,16 +195,11 @@ export default function ControlsPanel() {
                                     onChange={(e) => updatePhysicsConfig({
                                         MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, HEADER_TOP: parseInt(e.target.value) }
                                     })}
-                                    className="w-full"
                                 />
-                            </div>
+                            </ControlRow>
 
-                            <div>
-                                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
-                                    Card Side: {physicsConfig.MAX_DEPTH.CARD_SIDE}
-                                </label>
-                                <input
-                                    type="range"
+                            <ControlRow label={`Card Side: ${physicsConfig.MAX_DEPTH.CARD_SIDE}`}>
+                                <WinterSlider
                                     min="0"
                                     max="20"
                                     step="1"
@@ -211,9 +207,8 @@ export default function ControlsPanel() {
                                     onChange={(e) => updatePhysicsConfig({
                                         MAX_DEPTH: { ...physicsConfig.MAX_DEPTH, CARD_SIDE: parseInt(e.target.value) }
                                     })}
-                                    className="w-full"
                                 />
-                            </div>
+                            </ControlRow>
                         </div>
                     </div>
                 </div>
