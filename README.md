@@ -1,4 +1,5 @@
-# [@hdcodedev/snowfall](https://www.next-snowfall.vercel.app)
+# [@hdcodedev/snowfall](https://next-snowfall.vercel.app)
+
 
 A realistic snowfall effect for React with physics-based accumulation on surfaces. Features melting, wind, and smart surface detection.
 
