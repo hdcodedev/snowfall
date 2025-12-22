@@ -102,7 +102,7 @@ Hook to access snowfall controls. Must be used within `SnowfallProvider`.
 
 ## Demo
 
-Check out the [live demo](https://github.com/hdcodedev/snowfall) (link to your deployed demo)
+Check out the [live demo](https://snowfall-2026.vercel.app)
 
 ## Tips
 
