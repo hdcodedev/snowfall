@@ -129,7 +129,9 @@ cd demo && npm run dev
 
 ## License
 
-MIT © [hdcodedev](https://github.com/hdcodedev)
+Copyright © 2025 hdcodedev.
+
+Licensed under the [Apache 2.0 License](LICENSE).
 
 ## Contributing
 
