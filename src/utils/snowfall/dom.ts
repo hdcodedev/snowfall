@@ -97,7 +97,16 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface;
 
         if (isFullPageWrapper && !isBottomSurface && !isManuallyIncluded) return;
 
-        const isFixed = styles.position === 'fixed' || styles.position === 'sticky';
+        let isFixed = false;
+        let currentEl: Element | null = el;
+        while (currentEl && currentEl !== document.body) {
+            const style = window.getComputedStyle(currentEl);
+            if (style.position === 'fixed' || style.position === 'sticky') {
+                isFixed = true;
+                break;
+            }
+            currentEl = currentEl.parentElement;
+        }
 
         if (shouldAccumulate(el)) {
             // Determine type: manual override takes precedence
