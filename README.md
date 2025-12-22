@@ -1,5 +1,7 @@
 # [@hdcodedev/snowfall](https://next-snowfall.vercel.app)
 
+[![npm version](https://img.shields.io/npm/v/@hdcodedev/snowfall.svg)](https://www.npmjs.com/package/@hdcodedev/snowfall)
+
 
 A realistic snowfall effect for React with physics-based accumulation on surfaces. Features melting, wind, and smart surface detection.
 
