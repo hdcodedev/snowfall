@@ -11,6 +11,7 @@ export default function Snowfall() {
     const { isEnabled, physicsConfig, setMetrics } = useSnowfall();
     const isEnabledRef = useRef(isEnabled);
     const physicsConfigRef = useRef(physicsConfig);
+    const setMetricsRef = useRef(setMetrics);
     const [isMounted, setIsMounted] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
 
@@ -42,6 +43,10 @@ export default function Snowfall() {
     useEffect(() => {
         physicsConfigRef.current = physicsConfig;
     }, [physicsConfig]);
+
+    useEffect(() => {
+        setMetricsRef.current = setMetrics;
+    }, [setMetrics]);
 
     useEffect(() => {
         if (!isMounted) return;
@@ -151,7 +156,7 @@ export default function Snowfall() {
 
             // Update metrics every 500ms
             if (currentTime - lastMetricsUpdate > 500) {
-                setMetrics({
+                setMetricsRef.current({
                     fps: fpsFrames.current.length,
                     frameTime: metricsRef.current.frameTime,
                     scanTime: metricsRef.current.scanTime,
