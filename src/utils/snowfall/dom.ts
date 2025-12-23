@@ -18,7 +18,9 @@ const AUTO_DETECT_CLASSES = [
 ];
 
 // Performance optimization: Cache computed styles to avoid repeated getComputedStyle calls
-const styleCache = new WeakMap<Element, CSSStyleDeclaration>();
+// Using Map instead of WeakMap to allow cache invalidation when styles change
+// Cache is cleared on each surface scan to prevent stale data after dynamic changes
+let styleCache = new Map<Element, CSSStyleDeclaration>();
 
 const getCachedStyle = (el: Element): CSSStyleDeclaration => {
     let cached = styleCache.get(el);
@@ -27,6 +29,14 @@ const getCachedStyle = (el: Element): CSSStyleDeclaration => {
         styleCache.set(el, cached);
     }
     return cached;
+};
+
+/**
+ * Clear the computed style cache. Called before re-scanning surfaces
+ * to ensure fresh style data after dynamic changes (e.g., CSS class changes, media queries).
+ */
+export const clearStyleCache = (): void => {
+    styleCache.clear();
 };
 
 export const getElementType = (el: Element): SnowfallSurface => {
@@ -67,6 +77,9 @@ const shouldAccumulate = (el: Element): boolean => {
 };
 
 export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface; isFixed: boolean }[] => {
+    // Clear style cache to ensure fresh computed styles after any dynamic changes
+    clearStyleCache();
+
     const surfaces: { el: Element; type: SnowfallSurface; isFixed: boolean }[] = [];
     const seen = new Set<Element>();
 
