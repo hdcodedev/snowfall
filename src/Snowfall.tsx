@@ -180,17 +180,8 @@ export default function Snowfall() {
 
         window.addEventListener('resize', handleResize);
 
-        // OPTIMIZATION: Use requestIdleCallback for non-urgent updates when available
-        // Increased interval from 3s to 5s to reduce CPU usage
-        const scheduleUpdate = () => {
-            if (typeof requestIdleCallback !== 'undefined') {
-                requestIdleCallback(initAccumulationWrapper, { timeout: 5000 });
-            } else {
-                initAccumulationWrapper();
-            }
-        };
-
-        const checkInterval = setInterval(scheduleUpdate, 5000);
+        // Periodic surface scan every 5 seconds to detect DOM changes
+        const checkInterval = setInterval(initAccumulationWrapper, 5000);
 
         return () => {
             cancelAnimationFrame(animationIdRef.current);
