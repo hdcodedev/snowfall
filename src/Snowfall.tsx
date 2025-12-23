@@ -33,7 +33,7 @@ export default function Snowfall() {
     });
 
     useEffect(() => {
-        setIsMounted(true);
+        requestAnimationFrame(() => setIsMounted(true));
     }, []);
 
     useEffect(() => {
@@ -117,7 +117,10 @@ export default function Snowfall() {
         };
         initAccumulationWrapper();
 
-        setIsVisible(true);
+        // Delay visibility slightly to ensure smooth fade-in after canvas is ready
+        requestAnimationFrame(() => {
+            if (isMounted) setIsVisible(true);
+        });
 
         let lastTime = 0;
         let lastMetricsUpdate = 0;
