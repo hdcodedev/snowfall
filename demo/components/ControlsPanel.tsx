@@ -75,6 +75,16 @@ export default function ControlsPanel() {
                             />
                         </ControlRow>
 
+                        <ControlRow label={`Max Surfaces: ${physicsConfig.MAX_SURFACES ?? 5}`}>
+                            <WinterSlider
+                                min="0"
+                                max="200"
+                                step="5"
+                                value={physicsConfig.MAX_SURFACES ?? 5}
+                                onChange={(e) => updatePhysicsConfig({ MAX_SURFACES: parseInt(e.target.value) })}
+                            />
+                        </ControlRow>
+
                         <ControlRow label={`Melt Speed: ${(physicsConfig.MELT_SPEED * 10000).toFixed(1)}`}>
                             <WinterSlider
                                 min="0"
