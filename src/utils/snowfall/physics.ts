@@ -4,15 +4,16 @@ import { getAccumulationSurfaces } from './dom';
 import { VAL_BOTTOM } from './constants';
 
 export const createSnowflake = (
-    canvasWidth: number,
+    worldWidth: number,
     config: PhysicsConfig,
     isBackground: boolean = false
 ): Snowflake => {
+    // Background flakes are smaller, slower, and have lower opacity to create depth (parallax feel).
     if (isBackground) {
         const sizeRatio = Math.random();
         const radius = config.FLAKE_SIZE.MIN * 0.6 + sizeRatio * (config.FLAKE_SIZE.MAX - config.FLAKE_SIZE.MIN) * 0.4;
         return {
-            x: Math.random() * canvasWidth,
+            x: Math.random() * worldWidth,
             y: window.scrollY - 5,
             radius,
             speed: radius * 0.3 + Math.random() * 0.2 + 0.2,
@@ -27,7 +28,7 @@ export const createSnowflake = (
         const sizeRatio = Math.random();
         const radius = config.FLAKE_SIZE.MIN + sizeRatio * (config.FLAKE_SIZE.MAX - config.FLAKE_SIZE.MIN);
         return {
-            x: Math.random() * canvasWidth,
+            x: Math.random() * worldWidth,
             y: window.scrollY - 5,
             radius,
             speed: radius * 0.5 + Math.random() * 0.3 + 0.5,
@@ -45,7 +46,8 @@ export const initializeAccumulation = (
     accumulationMap: Map<Element, SnowAccumulation>,
     config: PhysicsConfig
 ) => {
-    const elements = getAccumulationSurfaces();
+    // Scan DOM for new valid surfaces
+    const elements = getAccumulationSurfaces(config.MAX_SURFACES);
     // Prune disconnected elements
     for (const [el] of accumulationMap.entries()) {
         if (!el.isConnected) {
@@ -53,7 +55,7 @@ export const initializeAccumulation = (
         }
     }
 
-    elements.forEach(({ el, type, isFixed }) => {
+    elements.forEach(({ el, type }) => {
         const existing = accumulationMap.get(el);
         const rect = el.getBoundingClientRect();
         const width = Math.ceil(rect.width);
@@ -61,9 +63,8 @@ export const initializeAccumulation = (
 
         if (existing && existing.heights.length === width) {
             existing.type = type;
-            existing.isFixed = isFixed;
             if (existing.borderRadius !== undefined) {
-                const styleBuffer = window.getComputedStyle(el); // Potentially slow in loop, strictly necessary?
+                const styleBuffer = window.getComputedStyle(el);
                 existing.borderRadius = parseFloat(styleBuffer.borderTopLeftRadius) || 0;
             }
             return;
@@ -88,7 +89,6 @@ export const initializeAccumulation = (
             maxHeights[i] = baseMax * edgeFactor * (0.85 + Math.random() * 0.15);
         }
 
-        // Smooth maxHeights
         const smoothPasses = 4;
         for (let p = 0; p < smoothPasses; p++) {
             const smoothed = [...maxHeights];
@@ -105,8 +105,7 @@ export const initializeAccumulation = (
             rightSide: existing?.rightSide.length === height ? existing.rightSide : new Array(height).fill(0),
             maxSideHeight: isBottom ? 0 : config.MAX_DEPTH.SIDE,
             borderRadius,
-            type,
-            isFixed,
+            type
         });
     });
 };
@@ -141,9 +140,16 @@ export const updateSnowflakes = (
     elementRects: ElementSurface[],
     config: PhysicsConfig,
     dt: number,
-    canvasWidth: number,
-    canvasHeight: number
+    worldWidth: number,
+    worldHeight: number
 ) => {
+    // Scroll used for World -> Viewport mapping for collision
+    // Flakes are in World Space.
+    // DOM Rects are in Viewport Space (relative to the window).
+    // To check collision, we subtract scrollX/Y from Flake coordinates to get their Viewport position.
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+
     for (let i = snowflakes.length - 1; i >= 0; i--) {
         const flake = snowflakes[i];
 
@@ -153,29 +159,37 @@ export const updateSnowflakes = (
 
         let landed = false;
 
-        for (const { rect, acc } of elementRects) {
+        for (const item of elementRects) {
+            const { rect, acc } = item;
             const isBottom = acc.type === VAL_BOTTOM;
 
-            // Side collisions
-            if (!landed && acc.maxSideHeight > 0 && !isBottom) {
-                const isInVerticalBounds = flake.y >= rect.top && flake.y <= rect.bottom;
+            // Flake is World Space. Rect is Viewport Space.
+            // Map Flake to Viewport Relative for collision check vs Rect
+            const flakeViewportX = flake.x - scrollX;
+            const flakeViewportY = flake.y - scrollY;
 
+            // Simple Collision Check
+            const isInVerticalBounds = flakeViewportY >= rect.top && flakeViewportY <= rect.bottom;
+
+            // Side collisions
+            // Check if flake hits the left or right edge of the element
+            if (!landed && acc.maxSideHeight > 0 && !isBottom) {
                 if (isInVerticalBounds) {
-                    const localY = Math.floor(flake.y - rect.top);
+                    const localY = Math.floor(flakeViewportY - rect.top);
                     const borderRadius = acc.borderRadius;
 
                     const isInTopCorner = localY < borderRadius;
                     const isInBottomCorner = localY > rect.height - borderRadius;
                     const isCorner = borderRadius > 0 && (isInTopCorner || isInBottomCorner);
 
-                    if (flake.x >= rect.left - 5 && flake.x < rect.left + 3) {
+                    if (flakeViewportX >= rect.left - 5 && flakeViewportX < rect.left + 3) {
                         if (!isCorner) {
                             accumulateSide(acc.leftSide, rect.height, localY, acc.maxSideHeight, borderRadius, config);
                             landed = true;
                         }
                     }
 
-                    if (!landed && flake.x > rect.right - 3 && flake.x <= rect.right + 5) {
+                    if (!landed && flakeViewportX > rect.right - 3 && flakeViewportX <= rect.right + 5) {
                         if (!isCorner) {
                             accumulateSide(acc.rightSide, rect.height, localY, acc.maxSideHeight, borderRadius, config);
                             landed = true;
@@ -186,15 +200,16 @@ export const updateSnowflakes = (
                 }
             }
 
-            // Top accumulation
-            if (flake.x >= rect.left && flake.x <= rect.right) {
-                const localX = Math.floor(flake.x - rect.left);
+            // Top/Bottom accumulation
+            // Check if flake hits the primary horizontal surface
+            if (flakeViewportX >= rect.left && flakeViewportX <= rect.right) {
+                const localX = Math.floor(flakeViewportX - rect.left);
                 const currentHeight = acc.heights[localX] || 0;
                 const maxHeight = acc.maxHeights[localX] || 5;
 
                 const surfaceY = isBottom ? rect.bottom - currentHeight : rect.top - currentHeight;
 
-                if (flake.y >= surfaceY && flake.y < surfaceY + 10 && currentHeight < maxHeight) {
+                if (flakeViewportY >= surfaceY && flakeViewportY < surfaceY + 10 && currentHeight < maxHeight) {
                     const shouldAccumulate = isBottom ? Math.random() < 0.15 : true;
 
                     if (shouldAccumulate) {
@@ -237,7 +252,7 @@ export const updateSnowflakes = (
             }
         }
 
-        if (landed || flake.y > canvasHeight + 10 || flake.x < -20 || flake.x > canvasWidth + 20) {
+        if (landed || flake.y > worldHeight + 10 || flake.x < -20 || flake.x > worldWidth + 20) {
             snowflakes.splice(i, 1);
         }
     }

@@ -7,8 +7,8 @@ export default function Home() {
       <ToggleButton />
       <ControlsPanel />
 
-      <header className="py-12 text-center text-gray-900 dark:text-white">
-        <div className="inline-block p-8 bg-white/30 dark:bg-black/30 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20">
+      <header className="py-12 text-center text-gray-900 dark:text-white drop-shadow-[0_15px_15px_rgba(0,0,0,0.25)]">
+        <div className="inline-block p-8 bg-white/30 dark:bg-black/30 backdrop-blur-md rounded-2xl border border-white/20 dark:border-gray-700/20">
           <h1 className="text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">
             @hdcodedev/snowfall
           </h1>

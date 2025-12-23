@@ -2,6 +2,9 @@ import { Snowflake, ElementSurface } from './types';
 import { VAL_BOTTOM } from './constants';
 
 export const drawSnowflake = (ctx: CanvasRenderingContext2D, flake: Snowflake) => {
+    // Flakes are tracked in World Space.
+    // The Canvas Context is translated by (-scrollX, -scrollY), effectively viewing the World.
+    // So we can draw flakes directly at their World (x, y) coordinates.
     ctx.beginPath();
     ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
@@ -16,10 +19,8 @@ export const drawSnowflake = (ctx: CanvasRenderingContext2D, flake: Snowflake) =
 
 export const drawAccumulations = (
     ctx: CanvasRenderingContext2D,
-    fixedCtx: CanvasRenderingContext2D | null,
     elementRects: ElementSurface[]
 ) => {
-    // Setup styles for both contexts
     const setupCtx = (c: CanvasRenderingContext2D) => {
         c.fillStyle = 'rgba(255, 255, 255, 0.95)';
         c.shadowColor = 'rgba(200, 230, 255, 0.6)';
@@ -27,20 +28,22 @@ export const drawAccumulations = (
         c.shadowOffsetY = -1;
     };
     setupCtx(ctx);
-    if (fixedCtx) setupCtx(fixedCtx);
 
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
+    const currentScrollX = window.scrollX;
+    const currentScrollY = window.scrollY;
 
-    for (const { rect, acc } of elementRects) {
+    for (const item of elementRects) {
+        const { rect, acc } = item;
+
         if (!acc.heights.some(h => h > 0.1)) continue;
 
-        const useFixed = acc.isFixed && fixedCtx;
-        const targetCtx = useFixed ? fixedCtx! : ctx;
-
-        // If using fixed context, we need to convert absolute coordinates (rect) back to viewport coordinates
-        const dx = useFixed ? -scrollX : 0;
-        const dy = useFixed ? -scrollY : 0;
+        // Convert Viewport Rect to World Space for Drawing (match Context)
+        // The Canvas Context is translated by (-scrollX, -scrollY) to simulate a camera.
+        // We need to draw in World coordinates.
+        // Element Rects are in Viewport Coordinates (from getBoundingClientRect).
+        // World Coordinate = Viewport Coordinate + Scroll Offset.
+        const dx = currentScrollX;
+        const dy = currentScrollY;
 
         const isBottom = acc.type === VAL_BOTTOM;
         const baseY = isBottom ? rect.bottom - 1 : rect.top + 1;
@@ -59,7 +62,7 @@ export const drawAccumulations = (
             return offset;
         };
 
-        targetCtx.beginPath();
+        ctx.beginPath();
         let first = true;
         const step = 2;
         const len = acc.heights.length;
@@ -69,10 +72,10 @@ export const drawAccumulations = (
             const px = rect.left + x + dx;
             const py = baseY - height + getCurveOffset(x) + dy;
             if (first) {
-                targetCtx.moveTo(px, py);
+                ctx.moveTo(px, py);
                 first = false;
             } else {
-                targetCtx.lineTo(px, py);
+                ctx.lineTo(px, py);
             }
         }
 
@@ -81,35 +84,30 @@ export const drawAccumulations = (
             const height = acc.heights[x] || 0;
             const px = rect.left + x + dx;
             const py = baseY - height + getCurveOffset(x) + dy;
-            targetCtx.lineTo(px, py);
+            ctx.lineTo(px, py);
         }
 
         for (let x = len - 1; x >= 0; x -= step) {
             const px = rect.left + x + dx;
             const py = baseY + getCurveOffset(x) + dy;
-            targetCtx.lineTo(px, py);
+            ctx.lineTo(px, py);
         }
 
         const startX = 0;
         const startPx = rect.left + startX + dx;
         const startPy = baseY + getCurveOffset(startX) + dy;
-        targetCtx.lineTo(startPx, startPy);
+        ctx.lineTo(startPx, startPy);
 
-        targetCtx.closePath();
-        targetCtx.fill();
+        ctx.closePath();
+        ctx.fill();
     }
 
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
-    if (fixedCtx) {
-        fixedCtx.shadowBlur = 0;
-        fixedCtx.shadowOffsetY = 0;
-    }
 };
 
 export const drawSideAccumulations = (
     ctx: CanvasRenderingContext2D,
-    fixedCtx: CanvasRenderingContext2D | null,
     elementRects: ElementSurface[]
 ) => {
     const setupCtx = (c: CanvasRenderingContext2D) => {
@@ -118,12 +116,13 @@ export const drawSideAccumulations = (
         c.shadowBlur = 3;
     };
     setupCtx(ctx);
-    if (fixedCtx) setupCtx(fixedCtx);
 
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
+    const currentScrollX = window.scrollX;
+    const currentScrollY = window.scrollY;
 
-    for (const { rect, acc } of elementRects) {
+    for (const item of elementRects) {
+        const { rect, acc } = item;
+
         if (acc.maxSideHeight === 0) continue;
 
         const hasLeftSnow = acc.leftSide.some(h => h > 0.3);
@@ -131,27 +130,22 @@ export const drawSideAccumulations = (
 
         if (!hasLeftSnow && !hasRightSnow) continue;
 
-        const useFixed = acc.isFixed && fixedCtx;
-        const targetCtx = useFixed ? fixedCtx! : ctx;
-        const dx = useFixed ? -scrollX : 0;
-        const dy = useFixed ? -scrollY : 0;
+        const dx = currentScrollX;
+        const dy = currentScrollY;
 
         const drawSide = (sideArray: number[], isLeft: boolean) => {
-            targetCtx.beginPath();
+            ctx.beginPath();
             const baseX = isLeft ? rect.left : rect.right;
 
-            // Start at the top of the element
-            targetCtx.moveTo(baseX + dx, rect.top + dy);
+            ctx.moveTo(baseX + dx, rect.top + dy);
 
             for (let y = 0; y < sideArray.length; y += 2) {
                 const width = sideArray[y] || 0;
                 const nextY = Math.min(y + 2, sideArray.length - 1);
                 const nextWidth = sideArray[nextY] || 0;
 
-                // Apply gravity influence: snow accumulates more towards the bottom
-                // Quadratic falloff makes accumulation stronger at the bottom
                 const heightRatio = y / sideArray.length;
-                const gravityMultiplier = Math.pow(heightRatio, 1.5); // Heavy bias towards bottom
+                const gravityMultiplier = Math.pow(heightRatio, 1.5);
 
                 const py = rect.top + y + dy;
                 const px = (isLeft ? baseX - (width * gravityMultiplier) : baseX + (width * gravityMultiplier)) + dx;
@@ -160,14 +154,14 @@ export const drawSideAccumulations = (
                 const nGravityMultiplier = Math.pow(nRatio, 1.5);
                 const nx = (isLeft ? baseX - (nextWidth * nGravityMultiplier) : baseX + (nextWidth * nGravityMultiplier)) + dx;
 
-                targetCtx.lineTo(px, py);
-                targetCtx.lineTo(nx, ny);
+                ctx.lineTo(px, py);
+                ctx.lineTo(nx, ny);
             }
 
             // Close at the bottom
-            targetCtx.lineTo(baseX + dx, rect.bottom + dy);
-            targetCtx.closePath();
-            targetCtx.fill();
+            ctx.lineTo(baseX + dx, rect.bottom + dy);
+            ctx.closePath();
+            ctx.fill();
         };
 
         if (hasLeftSnow) drawSide(acc.leftSide, true);
@@ -175,5 +169,4 @@ export const drawSideAccumulations = (
     }
 
     ctx.shadowBlur = 0;
-    if (fixedCtx) fixedCtx.shadowBlur = 0;
 };

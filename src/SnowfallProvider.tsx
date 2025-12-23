@@ -20,6 +20,7 @@ export interface PhysicsConfig {
         MIN: number;
         MAX: number;
     };
+    MAX_SURFACES: number;
 }
 
 export const DEFAULT_PHYSICS: PhysicsConfig = {
@@ -39,7 +40,8 @@ export const DEFAULT_PHYSICS: PhysicsConfig = {
     FLAKE_SIZE: {
         MIN: 0.5,
         MAX: 1.6,
-    }
+    },
+    MAX_SURFACES: 10
 };
 
 export interface PerformanceMetrics {

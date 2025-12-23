@@ -59,13 +59,18 @@ export default function Snowfall() {
 
         const resizeCanvas = () => {
             if (canvasRef.current) {
-                const newHeight = Math.max(document.documentElement.scrollHeight, window.innerHeight);
-                const newWidth = Math.max(document.documentElement.scrollWidth, window.innerWidth);
+                // Use viewport dimensions for fixed canvas
+                const newWidth = window.innerWidth;
+                const newHeight = window.innerHeight;
 
-                if (canvasRef.current.height !== newHeight || canvasRef.current.width !== newWidth) {
-                    canvasRef.current.width = newWidth;
-                    canvasRef.current.height = newHeight;
-                }
+                // Handle high DPI displays
+                const dpr = window.devicePixelRatio || 1;
+                canvasRef.current.width = newWidth * dpr;
+                canvasRef.current.height = newHeight * dpr;
+
+                // Set CSS size
+                canvasRef.current.style.width = `${newWidth}px`;
+                canvasRef.current.style.height = `${newHeight}px`;
             }
         };
         resizeCanvas();
@@ -87,9 +92,9 @@ export default function Snowfall() {
         setIsVisible(true);
 
         let lastTime = 0;
-        let lastRectUpdate = 0;
         let lastMetricsUpdate = 0;
-        let cachedElementRects: ReturnType<typeof getElementRects> = [];
+        // Holds current frame's element positions
+        let elementRects: ReturnType<typeof getElementRects> = [];
 
         const animate = (currentTime: number) => {
             if (lastTime === 0) {
@@ -116,24 +121,41 @@ export default function Snowfall() {
 
             // Time canvas clear
             const clearStart = performance.now();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Reset transform to clear the entire viewport-sized canvas
+            // We use the dpr scaling, so we clear the logical width/height
+            const dpr = window.devicePixelRatio || 1;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+
+            // Translate the context to Simulate Scrolling
+            // We move the 'world' up by scrollY, so absolute coordinates draw in the correct place relative to viewport
+            const scrollX = window.scrollX;
+            const scrollY = window.scrollY;
+            ctx.translate(-scrollX, -scrollY);
+
             metricsRef.current.clearTime = performance.now() - clearStart;
 
             const snowflakes = snowflakesRef.current;
 
-            // PERFORMANCE: Only update element rects every 100ms instead of every frame
-            // getBoundingClientRect() is expensive, especially on Safari
-            if (currentTime - lastRectUpdate > 100) {
-                const rectStart = performance.now();
-                cachedElementRects = getElementRects(accumulationRef.current);
-                metricsRef.current.rectUpdateTime = performance.now() - rectStart;
-                lastRectUpdate = currentTime;
-            }
+            // PERFORMANCE: Update element rects EVERY FRAME to track layout changes and animations
+            // getBoundingClientRect() is necessary to handle moving/animating elements
+            // getBoundingClientRect() is fast enough for the accumulation targets (< 50 elements)
+            const rectStart = performance.now();
+            elementRects = getElementRects(accumulationRef.current);
+            metricsRef.current.rectUpdateTime = performance.now() - rectStart;
 
             // Time physics
             const physicsStart = performance.now();
-            meltAndSmoothAccumulation(cachedElementRects, physicsConfigRef.current, dt);
-            updateSnowflakes(snowflakes, cachedElementRects, physicsConfigRef.current, dt, canvas.width, canvas.height);
+            meltAndSmoothAccumulation(elementRects, physicsConfigRef.current, dt);
+            updateSnowflakes(
+                snowflakes,
+                elementRects,
+                physicsConfigRef.current,
+                dt,
+                document.documentElement.scrollWidth,
+                document.documentElement.scrollHeight
+            );
             metricsRef.current.physicsTime = performance.now() - physicsStart;
 
             // Draw Snowflakes
@@ -145,12 +167,16 @@ export default function Snowfall() {
             // Spawn new snowflakes
             if (isEnabledRef.current && snowflakes.length < physicsConfigRef.current.MAX_FLAKES) {
                 const isBackground = Math.random() < 0.4;
-                snowflakes.push(createSnowflake(canvas.width, physicsConfigRef.current, isBackground));
+                // createSnowflake uses window.scrollY, so it creates flakes in world space
+                snowflakes.push(createSnowflake(document.documentElement.scrollWidth, physicsConfigRef.current, isBackground));
             }
 
             // Draw Accumulation
-            drawAccumulations(ctx, ctx, cachedElementRects);
-            drawSideAccumulations(ctx, ctx, cachedElementRects);
+            // We draw accumulations in World Space (by adding scroll offset in draw.ts)
+            // This aligns perfectly with the translated context and world-space snowflakes.
+            drawAccumulations(ctx, elementRects);
+            drawSideAccumulations(ctx, elementRects);
+
             metricsRef.current.drawTime = performance.now() - drawStart;
             metricsRef.current.frameTime = performance.now() - frameStartTime;
 
@@ -203,7 +229,7 @@ export default function Snowfall() {
             <canvas
                 ref={canvasRef}
                 style={{
-                    position: 'absolute',
+                    position: 'fixed', // FIXED position to eliminate scroll jitter
                     top: 0,
                     left: 0,
                     pointerEvents: 'none',
