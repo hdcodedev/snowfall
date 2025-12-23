@@ -75,16 +75,44 @@ export default function Snowfall() {
         };
         resizeCanvas();
 
-        const resizeObserver = new ResizeObserver(() => {
+        const windowResizeObserver = new ResizeObserver(() => {
             resizeCanvas();
         });
-        resizeObserver.observe(document.body);
+        windowResizeObserver.observe(document.body);
+
+        // Separate observer for snow accumulation surfaces
+        const surfaceObserver = new ResizeObserver((entries) => {
+            // Check if any accumulation element actually changed size
+            let needsUpdate = false;
+            for (const entry of entries) {
+                if (entry.target.isConnected) {
+                    needsUpdate = true;
+                    break;
+                }
+            }
+            if (needsUpdate) {
+                // Re-run initialization to adapt to new sizes
+                // We do NOT want to infinitely recurse, so initAccumulationWrapper
+                // must be careful about disconnection if called from here.
+                // Actually, we don't need to disconnect/reconnect here if the set of elements hasn't changed,
+                // but getAccumulationSurfaces (called by init) might find new ones or drop old ones.
+                // For simplicity, we just trigger the scan.
+                initAccumulationWrapper();
+            }
+        });
 
         snowflakesRef.current = [];
 
         const initAccumulationWrapper = () => {
             const scanStart = performance.now();
             initializeAccumulation(accumulationRef.current, physicsConfigRef.current);
+
+            // Sync observer with current surfaces
+            surfaceObserver.disconnect();
+            for (const [el] of accumulationRef.current) {
+                surfaceObserver.observe(el);
+            }
+
             metricsRef.current.scanTime = performance.now() - scanStart;
         };
         initAccumulationWrapper();
@@ -218,7 +246,8 @@ export default function Snowfall() {
             cancelAnimationFrame(animationIdRef.current);
             window.removeEventListener('resize', handleResize);
             clearInterval(checkInterval);
-            resizeObserver.disconnect();
+            windowResizeObserver.disconnect();
+            surfaceObserver.disconnect();
         };
     }, [isMounted]);
 
