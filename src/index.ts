@@ -2,7 +2,7 @@
 
 // Main components
 export { default as Snowfall } from './Snowfall';
-export { SnowfallProvider, useSnowfall } from './SnowfallProvider';
+export { SnowfallProvider, useSnowfall, DEFAULT_PHYSICS } from './SnowfallProvider';
 export { default as DebugPanel } from './DebugPanel';
 
 // Types
