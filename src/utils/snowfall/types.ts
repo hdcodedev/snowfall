@@ -15,13 +15,12 @@ export type SnowfallSurface = 'top' | 'bottom';
 
 export interface SnowAccumulation {
     heights: number[];
-    maxHeights: number[]; // Max height per pixel column
+    maxHeights: number[];
     leftSide: number[];
     rightSide: number[];
     maxSideHeight: number;
     borderRadius: number;
     type: SnowfallSurface;
-    isFixed: boolean;
 }
 
 export interface ElementSurface {
