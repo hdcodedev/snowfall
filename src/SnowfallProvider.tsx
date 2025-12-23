@@ -41,7 +41,7 @@ export const DEFAULT_PHYSICS: PhysicsConfig = {
         MIN: 0.5,
         MAX: 1.6,
     },
-    MAX_SURFACES: 10
+    MAX_SURFACES: 15
 };
 
 export interface PerformanceMetrics {
@@ -73,10 +73,10 @@ interface SnowfallContextType {
 
 const SnowfallContext = createContext<SnowfallContextType | undefined>(undefined);
 
-export function SnowfallProvider({ children }: { children: ReactNode }) {
+export function SnowfallProvider({ children, initialDebug = false }: { children: ReactNode; initialDebug?: boolean }) {
     const [isEnabled, setIsEnabled] = useState(true);
     const [physicsConfig, setPhysicsConfig] = useState<PhysicsConfig>(DEFAULT_PHYSICS);
-    const [debugMode, setDebugMode] = useState(false);
+    const [debugMode, setDebugMode] = useState(initialDebug);
     const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
 
     const toggleSnow = () => {
