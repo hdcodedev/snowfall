@@ -1,35 +1,40 @@
+import ResponsiveSnowCard from '@/components/ResponsiveSnowCard';
 import ToggleButton from '@/components/ToggleButton';
 import ControlsPanel from '@/components/ControlsPanel';
+import CodeBlock from '@/components/CodeBlock';
+import { DebugPanel } from '@hdcodedev/snowfall';
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <ToggleButton />
       <ControlsPanel />
+      <DebugPanel />
 
-      <header className="py-12 text-center text-gray-900 dark:text-white drop-shadow-[0_15px_15px_rgba(0,0,0,0.25)]">
-        <div className="inline-block p-8 bg-white/30 dark:bg-black/30 backdrop-blur-md rounded-2xl border border-white/20 dark:border-gray-700/20">
-          <h1 className="text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">
+      <header className="py-8 md:py-12 text-center text-gray-900 dark:text-white drop-shadow-[0_15px_15px_rgba(0,0,0,0.25)]">
+        <ResponsiveSnowCard className="inline-block p-4 md:p-8 bg-white/30 dark:bg-black/30 backdrop-blur-md rounded-2xl border border-white/20 dark:border-gray-700/20 mx-4 md:mx-0">
+          <h1 className="text-3xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">
             @hdcodedev/snowfall
           </h1>
-          <p className="text-xl opacity-80 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl opacity-80 max-w-2xl mx-auto">
             Realistic snow effect for React with physics-based accumulation
           </p>
-        </div>
+        </ResponsiveSnowCard>
       </header>
 
       <main className="flex-grow flex flex-col items-center justify-center container mx-auto px-4 py-8">
         {/* Installation Section */}
-        <div data-snowfall="top" className="w-full max-w-3xl p-8 rounded-xl bg-white dark:bg-gray-800 shadow-lg">
-          <h2 className="text-2xl font-bold mb-4 dark:text-white">Quick Start</h2>
+        <div data-snowfall="top" className="w-full max-w-3xl p-6 md:p-8 rounded-xl bg-white dark:bg-gray-800 shadow-lg">
+          <h2 className="text-xl md:text-2xl font-bold mb-4 dark:text-white">Quick Start</h2>
 
-          <div className="bg-gray-900 rounded-lg p-4 mb-4">
-            <code className="text-green-400">npm install @hdcodedev/snowfall</code>
-          </div>
+          <CodeBlock
+            code="npm install @hdcodedev/snowfall"
+            className="bg-gray-900 mb-4"
+            language="bash"
+          />
 
-          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-            <pre className="text-sm overflow-x-auto">
-              <code className="text-gray-900 dark:text-gray-100">{`import { Snowfall, SnowfallProvider } from '@hdcodedev/snowfall';
+          <CodeBlock
+            code={`import { Snowfall, SnowfallProvider } from '@hdcodedev/snowfall';
 
 function App() {
   return (
@@ -38,9 +43,10 @@ function App() {
       {/* Your content */}
     </SnowfallProvider>
   );
-}`}</code>
-            </pre>
-          </div>
+}`}
+            className="bg-gray-50 dark:bg-gray-900"
+            language="tsx"
+          />
         </div>
       </main>
 
