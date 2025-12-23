@@ -125,15 +125,6 @@ export default function DebugPanel() {
                         <div>Surfaces: {metrics.surfaceCount}</div>
                     </div>
 
-                    <div style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid #333' }}>
-                        <div style={{ color: '#ff0', marginBottom: '5px', fontWeight: 'bold' }}>
-                            🔧 BROWSER
-                        </div>
-                        <div>Safari: {metrics.isSafari ? '✓' : '✗'}</div>
-                        <div>Retina: {metrics.isRetina ? '✓' : '✗'} ({window.devicePixelRatio}x)</div>
-                        <div>Glow: {metrics.glowEnabled ? 'ON' : 'OFF'}</div>
-                    </div>
-
                     <button
                         onClick={copyToClipboard}
                         style={{

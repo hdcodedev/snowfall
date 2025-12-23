@@ -50,10 +50,7 @@ export interface PerformanceMetrics {
     surfaceCount: number;
     flakeCount: number;
     maxFlakes: number;
-    isSafari: boolean;
-    isRetina: boolean;
-    glowEnabled: boolean;
-    // New detailed metrics
+    // Detailed metrics
     rafGap: number;       // Time between requestAnimationFrame calls
     clearTime: number;    // Time to clear canvas
     physicsTime: number;  // Time for physics updates
