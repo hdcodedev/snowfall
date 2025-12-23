@@ -142,10 +142,10 @@ export default function DebugPanel({ defaultOpen = true }: { defaultOpen?: boole
                             Detailed Timings
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Clear</span> <span style={{ fontFamily: 'monospace' }}>{metrics.clearTime?.toFixed(2) || 0}</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Physics</span> <span style={{ fontFamily: 'monospace' }}>{metrics.physicsTime?.toFixed(2) || 0}</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Draw</span> <span style={{ fontFamily: 'monospace' }}>{metrics.drawTime?.toFixed(2) || 0}</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Scan</span> <span style={{ fontFamily: 'monospace' }}>{metrics.scanTime.toFixed(2)}</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Clear</span> <span style={{ fontFamily: 'monospace' }}>{metrics.clearTime?.toFixed(2) || 0}ms</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Physics</span> <span style={{ fontFamily: 'monospace' }}>{metrics.physicsTime?.toFixed(2) || 0}ms</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Draw</span> <span style={{ fontFamily: 'monospace' }}>{metrics.drawTime?.toFixed(2) || 0}ms</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Scan</span> <span style={{ fontFamily: 'monospace' }}>{metrics.scanTime.toFixed(2)}ms</span></div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gridColumn: 'span 2' }}><span>Rect Update</span> <span style={{ fontFamily: 'monospace' }}>{metrics.rectUpdateTime.toFixed(2)}ms</span></div>
                         </div>
                     </div>
