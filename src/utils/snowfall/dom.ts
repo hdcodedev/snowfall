@@ -1,7 +1,7 @@
 import { SnowAccumulation, ElementSurface, SnowfallSurface } from './types';
 import {
     ATTR_SNOWFALL, VAL_IGNORE, VAL_TOP, VAL_BOTTOM,
-    TAG_HEADER, ROLE_BANNER
+    TAG_HEADER, TAG_FOOTER, ROLE_BANNER, ROLE_CONTENTINFO
 } from './constants';
 
 // Headers: snow accumulates on BOTTOM edge
@@ -10,8 +10,8 @@ import {
 const BOTTOM_TAGS = [TAG_HEADER];
 const BOTTOM_ROLES = [ROLE_BANNER];
 
-const AUTO_DETECT_TAGS = ['header', 'footer', 'article', 'section', 'aside', 'nav'];
-const AUTO_DETECT_ROLES = ['[role="banner"]', '[role="contentinfo"]', '[role="main"]'];
+const AUTO_DETECT_TAGS = [TAG_HEADER, TAG_FOOTER, 'article', 'section', 'aside', 'nav'];
+const AUTO_DETECT_ROLES = [`[role="${ROLE_BANNER}"]`, `[role="${ROLE_CONTENTINFO}"]`, '[role="main"]'];
 const AUTO_DETECT_CLASSES = [
     '.card', '[class*="card"]', '[class*="Card"]',
     '[class*="bg-"]', '[class*="shadow-"]', '[class*="rounded-"]'
@@ -45,14 +45,15 @@ const shouldAccumulate = (el: Element, precomputedStyle?: CSSStyleDeclaration): 
     // Check for visual prominence
     const bgColor = styles.backgroundColor;
     const hasBackground = bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent';
-    const hasBorder = parseFloat(styles.borderWidth) > 0 || styles.borderStyle !== 'none';
+    const hasBorder = (parseFloat(styles.borderWidth) > 0 && styles.borderColor !== 'transparent' && styles.borderColor !== 'rgba(0, 0, 0, 0)') && styles.borderStyle !== 'none';
     const hasBoxShadow = styles.boxShadow !== 'none';
-    const hasBorderRadius = parseFloat(styles.borderRadius) > 0;
+    const hasFilter = styles.filter !== 'none' && styles.filter.includes('drop-shadow');
+    const hasBackdropFilter = styles.backdropFilter !== 'none';
 
-    return hasBackground || hasBorder || hasBoxShadow || hasBorderRadius;
+    return hasBackground || hasBorder || hasBoxShadow || hasFilter || hasBackdropFilter;
 };
 
-export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface }[] => {
+export const getAccumulationSurfaces = (maxSurfaces: number = 5): { el: Element; type: SnowfallSurface }[] => {
     // No explicit clearing needed as we don't cache styles persistently anymore.
     const surfaces: { el: Element; type: SnowfallSurface }[] = [];
     const seen = new Set<Element>();
@@ -66,12 +67,13 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface 
         ].join(', ')
     );
 
-    candidates.forEach(el => {
-        if (seen.has(el)) return;
+    for (const el of candidates) {
+        if (surfaces.length >= maxSurfaces) break;
+        if (seen.has(el)) continue;
 
         // Manual override check first
         const manualOverride = el.getAttribute(ATTR_SNOWFALL);
-        if (manualOverride === VAL_IGNORE) return;
+        if (manualOverride === VAL_IGNORE) continue;
 
         // If manually opted in, skip some heuristic checks but keep basic visibility/size sanity
         const isManuallyIncluded = manualOverride !== null;
@@ -80,18 +82,18 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface 
         // Visibility Check: Must be visible and opaque enough
         const isVisible = styles.display !== 'none' && styles.visibility !== 'hidden' && parseFloat(styles.opacity) > 0.1;
 
-        if (!isVisible && !isManuallyIncluded) return;
+        if (!isVisible && !isManuallyIncluded) continue;
 
         const rect = el.getBoundingClientRect();
         const hasSize = rect.width >= 100 && rect.height >= 50;
-        if (!hasSize && !isManuallyIncluded) return;
+        if (!hasSize && !isManuallyIncluded) continue;
 
         const isFullPageWrapper = rect.top <= 10 && rect.height >= window.innerHeight * 0.9;
         const isBottomTag = BOTTOM_TAGS.includes(el.tagName.toLowerCase());
         const isBottomRole = BOTTOM_ROLES.includes(el.getAttribute('role') || '');
         const isBottomSurface = isBottomTag || isBottomRole || manualOverride === VAL_BOTTOM;
 
-        if (isFullPageWrapper && !isBottomSurface && !isManuallyIncluded) return;
+        if (isFullPageWrapper && !isBottomSurface && !isManuallyIncluded) continue;
 
         if (shouldAccumulate(el, styles)) {
             let type: SnowfallSurface = getElementType(el);
@@ -101,7 +103,7 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface 
             surfaces.push({ el, type });
             seen.add(el);
         }
-    });
+    }
 
     return surfaces;
 };

@@ -47,7 +47,7 @@ export const initializeAccumulation = (
     config: PhysicsConfig
 ) => {
     // Scan DOM for new valid surfaces
-    const elements = getAccumulationSurfaces();
+    const elements = getAccumulationSurfaces(config.MAX_SURFACES);
     // Prune disconnected elements
     for (const [el] of accumulationMap.entries()) {
         if (!el.isConnected) {

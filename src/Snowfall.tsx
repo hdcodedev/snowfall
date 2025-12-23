@@ -68,9 +68,6 @@ export default function Snowfall() {
                 canvasRef.current.width = newWidth * dpr;
                 canvasRef.current.height = newHeight * dpr;
 
-                // Scale context to match DPI
-                ctx.scale(dpr, dpr);
-
                 // Set CSS size
                 canvasRef.current.style.width = `${newWidth}px`;
                 canvasRef.current.style.height = `${newHeight}px`;
@@ -141,7 +138,8 @@ export default function Snowfall() {
 
             const snowflakes = snowflakesRef.current;
 
-            // PERFORMANCE: Update element rects EVERY FRAME for continuous viewport tracking
+            // PERFORMANCE: Update element rects EVERY FRAME to track layout changes and animations
+            // getBoundingClientRect() is necessary to handle moving/animating elements
             // getBoundingClientRect() is fast enough for the accumulation targets (< 50 elements)
             const rectStart = performance.now();
             elementRects = getElementRects(accumulationRef.current);
