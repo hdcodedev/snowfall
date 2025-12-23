@@ -7,6 +7,7 @@ export const drawSnowflake = (ctx: CanvasRenderingContext2D, flake: Snowflake) =
     ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
     ctx.fill();
 
+    // Glow effect
     ctx.beginPath();
     ctx.arc(flake.x, flake.y, flake.radius * 1.5, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity * 0.2})`;

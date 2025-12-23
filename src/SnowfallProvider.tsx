@@ -42,12 +42,34 @@ export const DEFAULT_PHYSICS: PhysicsConfig = {
     }
 };
 
+export interface PerformanceMetrics {
+    fps: number;
+    frameTime: number;
+    scanTime: number;
+    rectUpdateTime: number;
+    surfaceCount: number;
+    flakeCount: number;
+    maxFlakes: number;
+    isSafari: boolean;
+    isRetina: boolean;
+    glowEnabled: boolean;
+    // New detailed metrics
+    rafGap: number;       // Time between requestAnimationFrame calls
+    clearTime: number;    // Time to clear canvas
+    physicsTime: number;  // Time for physics updates
+    drawTime: number;     // Time to draw snowflakes and accumulation
+}
+
 interface SnowfallContextType {
     isEnabled: boolean;
     toggleSnow: () => void;
     physicsConfig: PhysicsConfig;
     updatePhysicsConfig: (config: Partial<PhysicsConfig>) => void;
     resetPhysics: () => void;
+    debugMode: boolean;
+    toggleDebug: () => void;
+    metrics: PerformanceMetrics | null;
+    setMetrics: (metrics: PerformanceMetrics) => void;
 }
 
 const SnowfallContext = createContext<SnowfallContextType | undefined>(undefined);
@@ -55,9 +77,15 @@ const SnowfallContext = createContext<SnowfallContextType | undefined>(undefined
 export function SnowfallProvider({ children }: { children: ReactNode }) {
     const [isEnabled, setIsEnabled] = useState(true);
     const [physicsConfig, setPhysicsConfig] = useState<PhysicsConfig>(DEFAULT_PHYSICS);
+    const [debugMode, setDebugMode] = useState(false);
+    const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
 
     const toggleSnow = () => {
         setIsEnabled((prev) => !prev);
+    };
+
+    const toggleDebug = () => {
+        setDebugMode((prev) => !prev);
     };
 
     const updatePhysicsConfig = (config: Partial<PhysicsConfig>) => {
@@ -89,7 +117,11 @@ export function SnowfallProvider({ children }: { children: ReactNode }) {
             toggleSnow,
             physicsConfig,
             updatePhysicsConfig,
-            resetPhysics
+            resetPhysics,
+            debugMode,
+            toggleDebug,
+            metrics,
+            setMetrics,
         }}>
             {children}
         </SnowfallContext.Provider>

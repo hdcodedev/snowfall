@@ -8,16 +8,28 @@ import { createSnowflake, initializeAccumulation, meltAndSmoothAccumulation, upd
 import { drawAccumulations, drawSideAccumulations, drawSnowflake } from './utils/snowfall/draw';
 
 export default function Snowfall() {
-    const { isEnabled, physicsConfig } = useSnowfall();
+    const { isEnabled, physicsConfig, setMetrics } = useSnowfall();
     const isEnabledRef = useRef(isEnabled);
     const physicsConfigRef = useRef(physicsConfig);
     const [isMounted, setIsMounted] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const fixedCanvasRef = useRef<HTMLCanvasElement>(null);
     const snowflakesRef = useRef<Snowflake[]>([]);
     const accumulationRef = useRef<Map<Element, SnowAccumulation>>(new Map());
     const animationIdRef = useRef<number>(0);
+
+    // Performance metrics tracking
+    const fpsFrames = useRef<number[]>([]);
+    const metricsRef = useRef({
+        scanTime: 0,
+        rectUpdateTime: 0,
+        frameTime: 0,
+        rafGap: 0,
+        clearTime: 0,
+        physicsTime: 0,
+        drawTime: 0,
+    });
 
     useEffect(() => {
         setIsMounted(true);
@@ -35,27 +47,19 @@ export default function Snowfall() {
         if (!isMounted) return;
 
         const canvas = canvasRef.current;
-        const fixedCanvas = fixedCanvasRef.current;
-        if (!canvas || !fixedCanvas) return;
+        if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
-        const fixedCtx = fixedCanvas.getContext('2d');
-        if (!ctx || !fixedCtx) return;
+        if (!ctx) return;
 
         const resizeCanvas = () => {
-            if (canvasRef.current && fixedCanvasRef.current) {
+            if (canvasRef.current) {
                 const newHeight = Math.max(document.documentElement.scrollHeight, window.innerHeight);
                 const newWidth = Math.max(document.documentElement.scrollWidth, window.innerWidth);
 
                 if (canvasRef.current.height !== newHeight || canvasRef.current.width !== newWidth) {
                     canvasRef.current.width = newWidth;
                     canvasRef.current.height = newHeight;
-                }
-
-                // Fixed canvas matches viewport
-                if (fixedCanvasRef.current.width !== window.innerWidth || fixedCanvasRef.current.height !== window.innerHeight) {
-                    fixedCanvasRef.current.width = window.innerWidth;
-                    fixedCanvasRef.current.height = window.innerHeight;
                 }
             }
         };
@@ -69,13 +73,18 @@ export default function Snowfall() {
         snowflakesRef.current = [];
 
         const initAccumulationWrapper = () => {
+            const scanStart = performance.now();
             initializeAccumulation(accumulationRef.current, physicsConfigRef.current);
+            metricsRef.current.scanTime = performance.now() - scanStart;
         };
         initAccumulationWrapper();
 
         setIsVisible(true);
 
         let lastTime = 0;
+        let lastRectUpdate = 0;
+        let lastMetricsUpdate = 0;
+        let cachedElementRects: ReturnType<typeof getElementRects> = [];
 
         const animate = (currentTime: number) => {
             if (lastTime === 0) {
@@ -84,23 +93,46 @@ export default function Snowfall() {
                 return;
             }
 
+
             const deltaTime = Math.min(currentTime - lastTime, 50);
+
+            // Always track FPS so we have data when panel opens
+            const now = performance.now();
+            fpsFrames.current.push(now);
+            fpsFrames.current = fpsFrames.current.filter(t => now - t < 1000);
+
+            // Track detailed performance metrics
+            metricsRef.current.rafGap = currentTime - lastTime;
+
             lastTime = currentTime;
             const dt = deltaTime / 16.67;
 
+            const frameStartTime = performance.now();
+
+            // Time canvas clear
+            const clearStart = performance.now();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            fixedCtx.clearRect(0, 0, fixedCanvas.width, fixedCanvas.height);
+            metricsRef.current.clearTime = performance.now() - clearStart;
 
             const snowflakes = snowflakesRef.current;
-            const elementRects = getElementRects(accumulationRef.current);
 
-            // Physics Update: Melt and Smooth
-            meltAndSmoothAccumulation(elementRects, physicsConfigRef.current, dt);
+            // PERFORMANCE: Only update element rects every 100ms instead of every frame
+            // getBoundingClientRect() is expensive, especially on Safari
+            if (currentTime - lastRectUpdate > 100) {
+                const rectStart = performance.now();
+                cachedElementRects = getElementRects(accumulationRef.current);
+                metricsRef.current.rectUpdateTime = performance.now() - rectStart;
+                lastRectUpdate = currentTime;
+            }
 
-            // Physics Update: Snowflakes & Collisions
-            updateSnowflakes(snowflakes, elementRects, physicsConfigRef.current, dt, canvas.width, canvas.height);
+            // Time physics
+            const physicsStart = performance.now();
+            meltAndSmoothAccumulation(cachedElementRects, physicsConfigRef.current, dt);
+            updateSnowflakes(snowflakes, cachedElementRects, physicsConfigRef.current, dt, canvas.width, canvas.height);
+            metricsRef.current.physicsTime = performance.now() - physicsStart;
 
             // Draw Snowflakes
+            const drawStart = performance.now();
             for (const flake of snowflakes) {
                 drawSnowflake(ctx, flake);
             }
@@ -112,8 +144,31 @@ export default function Snowfall() {
             }
 
             // Draw Accumulation
-            drawAccumulations(ctx, fixedCtx, elementRects);
-            drawSideAccumulations(ctx, fixedCtx, elementRects);
+            drawAccumulations(ctx, ctx, cachedElementRects);
+            drawSideAccumulations(ctx, ctx, cachedElementRects);
+            metricsRef.current.drawTime = performance.now() - drawStart;
+            metricsRef.current.frameTime = performance.now() - frameStartTime;
+
+            // Update metrics every 500ms
+            if (currentTime - lastMetricsUpdate > 500) {
+                setMetrics({
+                    fps: fpsFrames.current.length,
+                    frameTime: metricsRef.current.frameTime,
+                    scanTime: metricsRef.current.scanTime,
+                    rectUpdateTime: metricsRef.current.rectUpdateTime,
+                    surfaceCount: accumulationRef.current.size,
+                    flakeCount: snowflakes.length,
+                    maxFlakes: physicsConfigRef.current.MAX_FLAKES,
+                    isSafari: false,
+                    isRetina: false,
+                    glowEnabled: true,
+                    rafGap: metricsRef.current.rafGap,
+                    clearTime: metricsRef.current.clearTime,
+                    physicsTime: metricsRef.current.physicsTime,
+                    drawTime: metricsRef.current.drawTime,
+                });
+                lastMetricsUpdate = currentTime;
+            }
 
             animationIdRef.current = requestAnimationFrame(animate);
         };
@@ -127,7 +182,18 @@ export default function Snowfall() {
         };
 
         window.addEventListener('resize', handleResize);
-        const checkInterval = setInterval(initAccumulationWrapper, 3000);
+
+        // OPTIMIZATION: Use requestIdleCallback for non-urgent updates when available
+        // Increased interval from 3s to 5s to reduce CPU usage
+        const scheduleUpdate = () => {
+            if (typeof requestIdleCallback !== 'undefined') {
+                requestIdleCallback(initAccumulationWrapper, { timeout: 5000 });
+            } else {
+                initAccumulationWrapper();
+            }
+        };
+
+        const checkInterval = setInterval(scheduleUpdate, 5000);
 
         return () => {
             cancelAnimationFrame(animationIdRef.current);
@@ -151,22 +217,11 @@ export default function Snowfall() {
                     zIndex: 9999,
                     opacity: isVisible ? 1 : 0,
                     transition: 'opacity 0.3s ease-in',
+                    willChange: 'transform',
                 }}
                 aria-hidden="true"
             />
-            <canvas
-                ref={fixedCanvasRef}
-                style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    pointerEvents: 'none',
-                    zIndex: 9999,
-                    opacity: isVisible ? 1 : 0,
-                    transition: 'opacity 0.3s ease-in',
-                }}
-                aria-hidden="true"
-            />
+
         </>
     );
 }

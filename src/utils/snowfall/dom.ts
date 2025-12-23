@@ -17,6 +17,18 @@ const AUTO_DETECT_CLASSES = [
     '[class*="bg-"]', '[class*="shadow-"]', '[class*="rounded-"]'
 ];
 
+// Performance optimization: Cache computed styles to avoid repeated getComputedStyle calls
+const styleCache = new WeakMap<Element, CSSStyleDeclaration>();
+
+const getCachedStyle = (el: Element): CSSStyleDeclaration => {
+    let cached = styleCache.get(el);
+    if (!cached) {
+        cached = window.getComputedStyle(el);
+        styleCache.set(el, cached);
+    }
+    return cached;
+};
+
 export const getElementType = (el: Element): SnowfallSurface => {
     const tagName = el.tagName.toLowerCase();
     if (BOTTOM_TAGS.includes(tagName)) return VAL_BOTTOM;
@@ -70,8 +82,6 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface;
     candidates.forEach(el => {
         if (seen.has(el)) return;
 
-        const rect = el.getBoundingClientRect();
-
         // Manual override check first
         const manualOverride = el.getAttribute(ATTR_SNOWFALL);
         if (manualOverride === VAL_IGNORE) return;
@@ -79,12 +89,16 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface;
         // If manually opted in, skip some heuristic checks but keep basic visibility/size sanity
         const isManuallyIncluded = manualOverride !== null;
 
-        const styles = window.getComputedStyle(el);
+        // OPTIMIZATION: Use cached styles and check visibility FIRST before expensive operations
+        const styles = getCachedStyle(el);
         const isVisible = styles.display !== 'none' &&
             styles.visibility !== 'hidden' &&
             parseFloat(styles.opacity) > 0.1;
 
         if (!isVisible && !isManuallyIncluded) return;
+
+        // Now get rect only if element is visible
+        const rect = el.getBoundingClientRect();
 
         // Skip really small elements unless manually forced
         const hasSize = rect.width >= 100 && rect.height >= 50;
@@ -93,7 +107,6 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface;
         // HEURISTIC: Skip full-page wrappers
         const isFullPageWrapper = rect.top <= 10 && rect.height >= window.innerHeight * 0.9;
 
-
         const isBottomTag = BOTTOM_TAGS.includes(el.tagName.toLowerCase());
         const isBottomRole = BOTTOM_ROLES.includes(el.getAttribute('role') || '');
         const isBottomSurface = isBottomTag || isBottomRole ||
@@ -101,10 +114,11 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface;
 
         if (isFullPageWrapper && !isBottomSurface && !isManuallyIncluded) return;
 
+        // OPTIMIZATION: Check position using cached styles
         let isFixed = false;
         let currentEl: Element | null = el;
         while (currentEl && currentEl !== document.body) {
-            const style = window.getComputedStyle(currentEl);
+            const style = getCachedStyle(currentEl);
             if (style.position === 'fixed' || style.position === 'sticky') {
                 isFixed = true;
                 break;
@@ -128,6 +142,7 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface;
     });
 
     console.log(`[Snowfall] Auto-detection found ${surfaces.length} surfaces`);
+    console.log('[Snowfall] ✅ Using OPTIMIZED version with WeakMap caching & 5s intervals');
     return surfaces;
 };
 
