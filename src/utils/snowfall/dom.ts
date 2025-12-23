@@ -155,7 +155,7 @@ export const getAccumulationSurfaces = (): { el: Element; type: SnowfallSurface;
     });
 
     console.log(`[Snowfall] Auto-detection found ${surfaces.length} surfaces`);
-    console.log('[Snowfall] ✅ Using OPTIMIZED version with WeakMap caching & 5s intervals');
+    console.log('[Snowfall] ✅ Using OPTIMIZED version with Map-based caching & 5s intervals');
     return surfaces;
 };
 
