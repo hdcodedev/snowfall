@@ -1,45 +1,136 @@
 import { PhysicsConfig } from '../../SnowfallProvider';
 import { Snowflake, SnowAccumulation, ElementSurface } from './types';
 import { getAccumulationSurfaces } from './dom';
-import { VAL_BOTTOM } from './constants';
+import { VAL_BOTTOM, TAU } from './constants';
 
 export const createSnowflake = (
     worldWidth: number,
     config: PhysicsConfig,
-    isBackground: boolean = false
+    isBackground = false
 ): Snowflake => {
-    // Background flakes are smaller, slower, and have lower opacity to create depth (parallax feel).
-    if (isBackground) {
-        const sizeRatio = Math.random();
-        const radius = config.FLAKE_SIZE.MIN * 0.6 + sizeRatio * (config.FLAKE_SIZE.MAX - config.FLAKE_SIZE.MIN) * 0.4;
-        return {
-            x: Math.random() * worldWidth,
-            y: window.scrollY - 5,
-            radius,
-            speed: radius * 0.3 + Math.random() * 0.2 + 0.2,
-            wind: (Math.random() - 0.5) * (config.WIND_STRENGTH * 0.625),
-            opacity: Math.random() * 0.2 + 0.2,
-            wobble: Math.random() * Math.PI * 2,
-            wobbleSpeed: Math.random() * 0.015 + 0.005,
-            sizeRatio,
-            isBackground: true
+    // Two random calls per flake:
+    // 1) horizontal position
+    // 2) DNA seed for all other traits
+    const x = Math.random() * worldWidth;
+    const dna = Math.random();
+
+    // Pseudo-random trait extraction from DNA
+    const noise = {
+        speed: (dna * 13) % 1,
+        wind: (dna * 7) % 1,
+        wobblePhase: (dna * 23) % 1,
+        wobbleSpeed: (dna * 5) % 1
+    };
+
+    const { MIN, MAX } = config.FLAKE_SIZE;
+    const sizeRatio = dna;
+
+    // Background vs foreground tuning
+    const profile = isBackground
+        ? {
+            sizeMin: MIN * 0.6,
+            sizeRange: (MAX - MIN) * 0.4,
+            speedBase: 0.2,
+            speedScale: 0.3,
+            noiseSpeedScale: 0.2,
+            windScale: config.WIND_STRENGTH * 0.625,
+            opacityBase: 0.2,
+            opacityScale: 0.2,
+            wobbleBase: 0.005,
+            wobbleScale: 0.015
+        }
+        : {
+            sizeMin: MIN,
+            sizeRange: MAX - MIN,
+            speedBase: 0.5,
+            speedScale: 0.5,
+            noiseSpeedScale: 0.3,
+            windScale: config.WIND_STRENGTH,
+            opacityBase: 0.5,
+            opacityScale: 0.3,
+            wobbleBase: 0.01,
+            wobbleScale: 0.02
         };
-    } else {
-        const sizeRatio = Math.random();
-        const radius = config.FLAKE_SIZE.MIN + sizeRatio * (config.FLAKE_SIZE.MAX - config.FLAKE_SIZE.MIN);
-        return {
-            x: Math.random() * worldWidth,
-            y: window.scrollY - 5,
-            radius,
-            speed: radius * 0.5 + Math.random() * 0.3 + 0.5,
-            wind: (Math.random() - 0.5) * config.WIND_STRENGTH,
-            opacity: Math.random() * 0.3 + 0.5,
-            wobble: Math.random() * Math.PI * 2,
-            wobbleSpeed: Math.random() * 0.02 + 0.01,
-            sizeRatio,
-            isBackground: false
-        };
+
+    const radius = profile.sizeMin + sizeRatio * profile.sizeRange;
+
+    return {
+        x: x,
+        y: window.scrollY - 5,
+        radius: radius,
+        speed:
+            radius * profile.speedScale +
+            noise.speed * profile.noiseSpeedScale +
+            profile.speedBase,
+        wind: (noise.wind - 0.5) * profile.windScale,
+        opacity: profile.opacityBase + sizeRatio * profile.opacityScale,
+        wobble: noise.wobblePhase * TAU,
+        wobbleSpeed: noise.wobbleSpeed * profile.wobbleScale + profile.wobbleBase,
+        sizeRatio: sizeRatio,
+        isBackground: isBackground
+    };
+};
+
+/**
+ * Initialize max heights array for snow accumulation with edge tapering and smoothing.
+ * Exported for benchmarking.
+ */
+export const initializeMaxHeights = (
+    width: number,
+    baseMax: number,
+    borderRadius: number,
+    isBottom: boolean = false
+): number[] => {
+    let maxHeights = new Array(width);
+    for (let i = 0; i < width; i++) {
+        let edgeFactor = 1.0;
+        if (!isBottom && borderRadius > 0) {
+            if (i < borderRadius) {
+                edgeFactor = Math.pow(i / borderRadius, 1.2);
+            } else if (i > width - borderRadius) {
+                edgeFactor = Math.pow((width - i) / borderRadius, 1.2);
+            }
+        }
+        maxHeights[i] = baseMax * edgeFactor * (0.85 + Math.random() * 0.15);
     }
+
+    const smoothPasses = 4;
+    for (let p = 0; p < smoothPasses; p++) {
+        const smoothed = [...maxHeights];
+        for (let i = 1; i < width - 1; i++) {
+            smoothed[i] = (maxHeights[i - 1] + maxHeights[i] + maxHeights[i + 1]) / 3;
+        }
+        maxHeights = smoothed;
+    }
+
+    return maxHeights;
+};
+
+const calculateCurveOffsets = (width: number, borderRadius: number, isBottom: boolean): number[] => {
+    const offsets = new Array(width).fill(0);
+    if (borderRadius <= 0 || isBottom) return offsets;
+
+    for (let x = 0; x < width; x++) {
+        let offset = 0;
+        if (x < borderRadius) {
+            const dist = borderRadius - x;
+            offset = borderRadius - Math.sqrt(Math.max(0, borderRadius * borderRadius - dist * dist));
+        } else if (x > width - borderRadius) {
+            const dist = x - (width - borderRadius);
+            offset = borderRadius - Math.sqrt(Math.max(0, borderRadius * borderRadius - dist * dist));
+        }
+        offsets[x] = offset;
+    }
+    return offsets;
+};
+
+const calculateGravityMultipliers = (height: number): number[] => {
+    const multipliers = new Array(height);
+    for (let i = 0; i < height; i++) {
+        const ratio = i / height;
+        multipliers[i] = Math.sqrt(ratio);
+    }
+    return multipliers;
 };
 
 export const initializeAccumulation = (
@@ -66,6 +157,11 @@ export const initializeAccumulation = (
             if (existing.borderRadius !== undefined) {
                 const styleBuffer = window.getComputedStyle(el);
                 existing.borderRadius = parseFloat(styleBuffer.borderTopLeftRadius) || 0;
+                existing.curveOffsets = calculateCurveOffsets(width, existing.borderRadius, isBottom);
+                // Initialize gravity multipliers if height matches but they're missing
+                if (existing.leftSide.length === Math.ceil(rect.height) && !existing.sideGravityMultipliers) {
+                    existing.sideGravityMultipliers = calculateGravityMultipliers(existing.leftSide.length);
+                }
             }
             return;
         }
@@ -76,27 +172,7 @@ export const initializeAccumulation = (
         const styles = window.getComputedStyle(el);
         const borderRadius = parseFloat(styles.borderTopLeftRadius) || 0;
 
-        let maxHeights = new Array(width);
-        for (let i = 0; i < width; i++) {
-            let edgeFactor = 1.0;
-            if (!isBottom && borderRadius > 0) {
-                if (i < borderRadius) {
-                    edgeFactor = Math.pow(i / borderRadius, 1.2);
-                } else if (i > width - borderRadius) {
-                    edgeFactor = Math.pow((width - i) / borderRadius, 1.2);
-                }
-            }
-            maxHeights[i] = baseMax * edgeFactor * (0.85 + Math.random() * 0.15);
-        }
-
-        const smoothPasses = 4;
-        for (let p = 0; p < smoothPasses; p++) {
-            const smoothed = [...maxHeights];
-            for (let i = 1; i < width - 1; i++) {
-                smoothed[i] = (maxHeights[i - 1] + maxHeights[i] + maxHeights[i + 1]) / 3;
-            }
-            maxHeights = smoothed;
-        }
+        const maxHeights = initializeMaxHeights(width, baseMax, borderRadius, isBottom);
 
         accumulationMap.set(el, {
             heights: existing?.heights.length === width ? existing.heights : new Array(width).fill(0),
@@ -105,12 +181,14 @@ export const initializeAccumulation = (
             rightSide: existing?.rightSide.length === height ? existing.rightSide : new Array(height).fill(0),
             maxSideHeight: isBottom ? 0 : config.MAX_DEPTH.SIDE,
             borderRadius,
+            curveOffsets: calculateCurveOffsets(width, borderRadius, isBottom),
+            sideGravityMultipliers: calculateGravityMultipliers(height),
             type
         });
     });
 };
 
-const accumulateSide = (
+export const accumulateSide = (
     sideArray: number[],
     rectHeight: number,
     localY: number,

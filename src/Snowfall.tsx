@@ -5,7 +5,7 @@ import { useSnowfall } from './SnowfallProvider';
 import { Snowflake, SnowAccumulation } from './utils/snowfall/types';
 import { getElementRects } from './utils/snowfall/dom';
 import { createSnowflake, initializeAccumulation, meltAndSmoothAccumulation, updateSnowflakes } from './utils/snowfall/physics';
-import { drawAccumulations, drawSideAccumulations, drawSnowflake } from './utils/snowfall/draw';
+import { drawAccumulations, drawSideAccumulations, drawSnowflakes } from './utils/snowfall/draw';
 
 export default function Snowfall() {
     const { isEnabled, physicsConfig, setMetrics } = useSnowfall();
@@ -189,11 +189,9 @@ export default function Snowfall() {
             );
             metricsRef.current.physicsTime = performance.now() - physicsStart;
 
-            // Draw Snowflakes
+            // Draw Snowflakes (batched for performance)
             const drawStart = performance.now();
-            for (const flake of snowflakes) {
-                drawSnowflake(ctx, flake);
-            }
+            drawSnowflakes(ctx, snowflakes);
 
             // Spawn new snowflakes
             if (isEnabledRef.current && snowflakes.length < physicsConfigRef.current.MAX_FLAKES) {
