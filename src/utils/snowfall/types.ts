@@ -21,6 +21,7 @@ export interface SnowAccumulation {
     maxSideHeight: number;
     borderRadius: number;
     curveOffsets: number[];
+    sideGravityMultipliers: number[];
     type: SnowfallSurface;
 }
 

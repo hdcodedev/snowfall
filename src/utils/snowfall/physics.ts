@@ -124,6 +124,15 @@ const calculateCurveOffsets = (width: number, borderRadius: number, isBottom: bo
     return offsets;
 };
 
+const calculateGravityMultipliers = (height: number): number[] => {
+    const multipliers = new Array(height);
+    for (let i = 0; i < height; i++) {
+        const ratio = i / height;
+        multipliers[i] = Math.sqrt(ratio);
+    }
+    return multipliers;
+};
+
 export const initializeAccumulation = (
     accumulationMap: Map<Element, SnowAccumulation>,
     config: PhysicsConfig
@@ -149,6 +158,10 @@ export const initializeAccumulation = (
                 const styleBuffer = window.getComputedStyle(el);
                 existing.borderRadius = parseFloat(styleBuffer.borderTopLeftRadius) || 0;
                 existing.curveOffsets = calculateCurveOffsets(width, existing.borderRadius, isBottom);
+                // Initialize gravity multipliers if height matches but they're missing
+                if (existing.leftSide.length === Math.ceil(rect.height) && !existing.sideGravityMultipliers) {
+                    existing.sideGravityMultipliers = calculateGravityMultipliers(existing.leftSide.length);
+                }
             }
             return;
         }
@@ -169,6 +182,7 @@ export const initializeAccumulation = (
             maxSideHeight: isBottom ? 0 : config.MAX_DEPTH.SIDE,
             borderRadius,
             curveOffsets: calculateCurveOffsets(width, borderRadius, isBottom),
+            sideGravityMultipliers: calculateGravityMultipliers(height),
             type
         });
     });

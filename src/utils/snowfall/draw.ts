@@ -116,7 +116,7 @@ export const drawSideAccumulations = (
 
     ctx.beginPath();
 
-    const drawSide = (sideArray: number[], isLeft: boolean, rect: DOMRect, dx: number, dy: number) => {
+    const drawSide = (sideArray: number[], isLeft: boolean, multipliers: number[], rect: DOMRect, dx: number, dy: number) => {
         const baseX = isLeft ? rect.left : rect.right;
 
         ctx.moveTo(baseX + dx, rect.top + dy);
@@ -127,14 +127,12 @@ export const drawSideAccumulations = (
             const nextY = Math.min(y + 2, sideArray.length - 1);
             const nextWidth = sideArray[nextY] || 0;
 
-            const heightRatio = y / sideArray.length;
-            const gravityMultiplier = Math.sqrt(heightRatio);
+            const gravityMultiplier = multipliers[y] || 0;
 
             const py = rect.top + y + dy;
             const px = (isLeft ? baseX - (width * gravityMultiplier) : baseX + (width * gravityMultiplier)) + dx;
             const ny = rect.top + nextY + dy;
-            const nRatio = nextY / sideArray.length;
-            const nGravityMultiplier = Math.sqrt(nRatio);
+            const nGravityMultiplier = multipliers[nextY] || 0;
             const nx = (isLeft ? baseX - (nextWidth * nGravityMultiplier) : baseX + (nextWidth * nGravityMultiplier)) + dx;
 
             ctx.lineTo(px, py);
@@ -159,8 +157,8 @@ export const drawSideAccumulations = (
         const dx = currentScrollX;
         const dy = currentScrollY;
 
-        if (hasLeftSnow) drawSide(acc.leftSide, true, rect, dx, dy);
-        if (hasRightSnow) drawSide(acc.rightSide, false, rect, dx, dy);
+        if (hasLeftSnow) drawSide(acc.leftSide, true, acc.sideGravityMultipliers, rect, dx, dy);
+        if (hasRightSnow) drawSide(acc.rightSide, false, acc.sideGravityMultipliers, rect, dx, dy);
     }
 
     ctx.fill();
