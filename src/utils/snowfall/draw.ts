@@ -1,19 +1,26 @@
 import { Snowflake, ElementSurface } from './types';
 import { VAL_BOTTOM } from './constants';
 
+const ACC_FILL_STYLE = 'rgba(255, 255, 255, 0.95)';
+const ACC_SHADOW_COLOR = 'rgba(200, 230, 255, 0.6)';
+
+export const generateRgbaString = (opacity: number): string => {
+    return `rgba(255, 255, 255, ${opacity})`;
+};
+
 export const drawSnowflake = (ctx: CanvasRenderingContext2D, flake: Snowflake) => {
     // Flakes are tracked in World Space.
     // The Canvas Context is translated by (-scrollX, -scrollY), effectively viewing the World.
     // So we can draw flakes directly at their World (x, y) coordinates.
     ctx.beginPath();
     ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
+    ctx.fillStyle = generateRgbaString(flake.opacity);
     ctx.fill();
 
     // Glow effect
     ctx.beginPath();
     ctx.arc(flake.x, flake.y, flake.radius * 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity * 0.2})`;
+    ctx.fillStyle = generateRgbaString(flake.opacity * 0.2);
     ctx.fill();
 };
 
@@ -21,13 +28,10 @@ export const drawAccumulations = (
     ctx: CanvasRenderingContext2D,
     elementRects: ElementSurface[]
 ) => {
-    const setupCtx = (c: CanvasRenderingContext2D) => {
-        c.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        c.shadowColor = 'rgba(200, 230, 255, 0.6)';
-        c.shadowBlur = 4;
-        c.shadowOffsetY = -1;
-    };
-    setupCtx(ctx);
+    ctx.fillStyle = ACC_FILL_STYLE;
+    ctx.shadowColor = ACC_SHADOW_COLOR;
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = -1;
 
     const currentScrollX = window.scrollX;
     const currentScrollY = window.scrollY;
@@ -49,19 +53,6 @@ export const drawAccumulations = (
         const baseY = isBottom ? rect.bottom - 1 : rect.top + 1;
         const borderRadius = acc.borderRadius;
 
-        const getCurveOffset = (xPos: number) => {
-            if (borderRadius <= 0 || isBottom) return 0;
-            let offset = 0;
-            if (xPos < borderRadius) {
-                const dist = borderRadius - xPos;
-                offset = borderRadius - Math.sqrt(Math.max(0, borderRadius * borderRadius - dist * dist));
-            } else if (xPos > rect.width - borderRadius) {
-                const dist = xPos - (rect.width - borderRadius);
-                offset = borderRadius - Math.sqrt(Math.max(0, borderRadius * borderRadius - dist * dist));
-            }
-            return offset;
-        };
-
         ctx.beginPath();
         let first = true;
         const step = 2;
@@ -70,7 +61,7 @@ export const drawAccumulations = (
         for (let x = 0; x < len; x += step) {
             const height = acc.heights[x] || 0;
             const px = rect.left + x + dx;
-            const py = baseY - height + getCurveOffset(x) + dy;
+            const py = baseY - height + (acc.curveOffsets[x] || 0) + dy;
             if (first) {
                 ctx.moveTo(px, py);
                 first = false;
@@ -83,19 +74,19 @@ export const drawAccumulations = (
             const x = len - 1;
             const height = acc.heights[x] || 0;
             const px = rect.left + x + dx;
-            const py = baseY - height + getCurveOffset(x) + dy;
+            const py = baseY - height + (acc.curveOffsets[x] || 0) + dy;
             ctx.lineTo(px, py);
         }
 
         for (let x = len - 1; x >= 0; x -= step) {
             const px = rect.left + x + dx;
-            const py = baseY + getCurveOffset(x) + dy;
+            const py = baseY + (acc.curveOffsets[x] || 0) + dy;
             ctx.lineTo(px, py);
         }
 
         const startX = 0;
         const startPx = rect.left + startX + dx;
-        const startPy = baseY + getCurveOffset(startX) + dy;
+        const startPy = baseY + (acc.curveOffsets[startX] || 0) + dy;
         ctx.lineTo(startPx, startPy);
 
         ctx.closePath();
@@ -110,12 +101,9 @@ export const drawSideAccumulations = (
     ctx: CanvasRenderingContext2D,
     elementRects: ElementSurface[]
 ) => {
-    const setupCtx = (c: CanvasRenderingContext2D) => {
-        c.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        c.shadowColor = 'rgba(200, 230, 255, 0.6)';
-        c.shadowBlur = 3;
-    };
-    setupCtx(ctx);
+    ctx.fillStyle = ACC_FILL_STYLE;
+    ctx.shadowColor = ACC_SHADOW_COLOR;
+    ctx.shadowBlur = 3;
 
     const currentScrollX = window.scrollX;
     const currentScrollY = window.scrollY;
