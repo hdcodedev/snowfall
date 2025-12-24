@@ -128,13 +128,13 @@ export const drawSideAccumulations = (
             const nextWidth = sideArray[nextY] || 0;
 
             const heightRatio = y / sideArray.length;
-            const gravityMultiplier = Math.pow(heightRatio, 1.5);
+            const gravityMultiplier = Math.sqrt(heightRatio);
 
             const py = rect.top + y + dy;
             const px = (isLeft ? baseX - (width * gravityMultiplier) : baseX + (width * gravityMultiplier)) + dx;
             const ny = rect.top + nextY + dy;
             const nRatio = nextY / sideArray.length;
-            const nGravityMultiplier = Math.pow(nRatio, 1.5);
+            const nGravityMultiplier = Math.sqrt(nRatio);
             const nx = (isLeft ? baseX - (nextWidth * nGravityMultiplier) : baseX + (nextWidth * nGravityMultiplier)) + dx;
 
             ctx.lineTo(px, py);
