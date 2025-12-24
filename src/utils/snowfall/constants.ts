@@ -9,3 +9,6 @@ export const TAG_FOOTER = 'footer';
 
 export const ROLE_BANNER = 'banner';
 export const ROLE_CONTENTINFO = 'contentinfo';
+
+// Mathematical constants
+export const TAU = Math.PI * 2; // Full circle in radians
