@@ -1,7 +1,7 @@
 import { PhysicsConfig } from '../../SnowfallProvider';
 import { Snowflake, SnowAccumulation, ElementSurface } from './types';
 import { getAccumulationSurfaces } from './dom';
-import { VAL_BOTTOM } from './constants';
+import { VAL_BOTTOM, TAU } from './constants';
 
 export const createSnowflake = (
     worldWidth: number,
@@ -64,7 +64,7 @@ export const createSnowflake = (
             profile.speedBase,
         wind: (noise.wind - 0.5) * profile.windScale,
         opacity: profile.opacityBase + sizeRatio * profile.opacityScale,
-        wobble: noise.wobblePhase * Math.PI * 2,
+        wobble: noise.wobblePhase * TAU,
         wobbleSpeed: noise.wobbleSpeed * profile.wobbleScale + profile.wobbleBase,
         sizeRatio: sizeRatio,
         isBackground: isBackground

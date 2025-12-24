@@ -1,30 +1,40 @@
 import { Snowflake, ElementSurface } from './types';
-import { VAL_BOTTOM } from './constants';
+import { VAL_BOTTOM, TAU } from './constants';
 
 const ACC_FILL_STYLE = 'rgba(255, 255, 255, 0.95)';
 const ACC_SHADOW_COLOR = 'rgba(200, 230, 255, 0.6)';
 
 
+/**
+ * Batched snowflake rendering for optimal performance.
+ * Flakes are tracked in World Space.
+ * The Canvas Context is translated by (-scrollX, -scrollY), effectively viewing the World.
+ */
+export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[]) => {
+    if (flakes.length === 0) return;
 
-export const drawSnowflake = (ctx: CanvasRenderingContext2D, flake: Snowflake) => {
-    // Flakes are tracked in World Space.
-    // The Canvas Context is translated by (-scrollX, -scrollY), effectively viewing the World.
-    // So we can draw flakes directly at their World (x, y) coordinates.
-
-    // Core
-    ctx.beginPath();
-    ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+    // Hoist fillStyle outside the loop - set once for all flakes
     ctx.fillStyle = '#FFFFFF';
-    ctx.globalAlpha = flake.opacity;
-    ctx.fill();
 
-    // Glow effect
-    ctx.beginPath();
-    ctx.arc(flake.x, flake.y, flake.radius * 1.5, 0, Math.PI * 2);
-    ctx.globalAlpha = flake.opacity * 0.2;
-    ctx.fill();
+    // First pass: Draw all snowflake cores
+    for (const flake of flakes) {
+        ctx.globalAlpha = flake.opacity;
+        ctx.beginPath();
+        ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
+        ctx.fill();
+    }
 
-    // Reset alpha for safety
+    // Second pass: Draw glow effects (skip for background flakes - they're smaller/fainter)
+    for (const flake of flakes) {
+        if (flake.isBackground) continue;
+
+        ctx.globalAlpha = flake.opacity * 0.2;
+        ctx.beginPath();
+        ctx.arc(flake.x, flake.y, flake.radius * 1.5, 0, TAU);
+        ctx.fill();
+    }
+
+    // Reset alpha once at the end
     ctx.globalAlpha = 1.0;
 };
 
