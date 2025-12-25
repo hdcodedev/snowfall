@@ -76,6 +76,8 @@ export const createSnowflake = (
     const rawGlowOpacity = opacity * 0.2;
     const glowOpacity = quantizeOpacity(rawGlowOpacity);
 
+    const initialWobble = noise.wobblePhase * TAU;
+
     return {
         x: x,
         y: window.scrollY - 5,
@@ -88,7 +90,7 @@ export const createSnowflake = (
         wind: (noise.wind - 0.5) * profile.windScale,
         opacity: opacity,
         glowOpacity: glowOpacity,
-        wobble: noise.wobblePhase * TAU,
+        wobble: initialWobble,
         wobbleSpeed: noise.wobbleSpeed * profile.wobbleScale + profile.wobbleBase,
         sizeRatio: sizeRatio,
         isBackground: isBackground
@@ -248,6 +250,135 @@ export const accumulateSide = (
     return newMax;
 };
 
+/**
+ * Update snowflake position and animation state.
+ * This must happen every frame for smooth animation.
+ */
+const updateSnowflakePosition = (flake: Snowflake, dt: number): void => {
+    flake.wobble += flake.wobbleSpeed * dt;
+
+    // Calculate position with wobble effect
+    flake.x += (flake.wind + Math.sin(flake.wobble) * 0.5) * dt;
+    flake.y += (flake.speed + Math.cos(flake.wobble * 0.5) * 0.1) * dt;
+};
+
+/**
+ * Check and handle side collisions (left/right edges of elements).
+ * Returns true if snowflake landed on a side.
+ */
+const checkSideCollision = (
+    flake: Snowflake,
+    flakeViewportX: number,
+    flakeViewportY: number,
+    rect: DOMRect,
+    acc: SnowAccumulation,
+    config: PhysicsConfig
+): boolean => {
+    const isInVerticalBounds = flakeViewportY >= rect.top && flakeViewportY <= rect.bottom;
+
+    if (!isInVerticalBounds || acc.maxSideHeight <= 0) {
+        return false;
+    }
+
+    const localY = Math.floor(flakeViewportY - rect.top);
+    const borderRadius = acc.borderRadius;
+
+    const isInTopCorner = localY < borderRadius;
+    const isInBottomCorner = localY > rect.height - borderRadius;
+    const isCorner = borderRadius > 0 && (isInTopCorner || isInBottomCorner);
+
+    if (isCorner) {
+        return false;
+    }
+
+    // Check left side
+    if (flakeViewportX >= rect.left - 5 && flakeViewportX < rect.left + 3) {
+        acc.leftMax = accumulateSide(acc.leftSide, rect.height, localY, acc.maxSideHeight, borderRadius, config, acc.leftMax);
+        return true;
+    }
+
+    // Check right side
+    if (flakeViewportX > rect.right - 3 && flakeViewportX <= rect.right + 5) {
+        acc.rightMax = accumulateSide(acc.rightSide, rect.height, localY, acc.maxSideHeight, borderRadius, config, acc.rightMax);
+        return true;
+    }
+
+    return false;
+};
+
+/**
+ * Check and handle top/bottom surface collisions.
+ * Returns true if snowflake landed on the surface.
+ */
+const checkSurfaceCollision = (
+    flake: Snowflake,
+    flakeViewportX: number,
+    flakeViewportY: number,
+    rect: DOMRect,
+    acc: SnowAccumulation,
+    isBottom: boolean,
+    config: PhysicsConfig
+): boolean => {
+    if (flakeViewportX < rect.left || flakeViewportX > rect.right) {
+        return false;
+    }
+
+    const localX = Math.floor(flakeViewportX - rect.left);
+    const currentHeight = acc.heights[localX] || 0;
+    const maxHeight = acc.maxHeights[localX] || 5;
+    const surfaceY = isBottom ? rect.bottom - currentHeight : rect.top - currentHeight;
+
+    if (flakeViewportY < surfaceY || flakeViewportY >= surfaceY + 10 || currentHeight >= maxHeight) {
+        return false;
+    }
+
+    const shouldAccumulate = isBottom ? Math.random() < 0.15 : true;
+
+    if (shouldAccumulate) {
+        const baseSpread = Math.ceil(flake.radius);
+        const spread = baseSpread + Math.floor(Math.random() * 2);
+        const accumRate = isBottom ? config.ACCUMULATION.BOTTOM_RATE : config.ACCUMULATION.TOP_RATE;
+        const centerOffset = Math.floor(Math.random() * 3) - 1;
+
+        for (let dx = -spread; dx <= spread; dx++) {
+            if (Math.random() < 0.15) continue;
+            const idx = localX + dx + centerOffset;
+            if (idx >= 0 && idx < acc.heights.length) {
+                const dist = Math.abs(dx);
+                const pixelMax = acc.maxHeights[idx] || 5;
+
+                const normDist = dist / spread;
+                const falloff = (Math.cos(normDist * Math.PI) + 1) / 2;
+                const baseAdd = 0.3 * falloff;
+
+                const randomFactor = 0.8 + Math.random() * 0.4;
+                const addHeight = baseAdd * randomFactor * accumRate;
+
+                if (acc.heights[idx] < pixelMax && addHeight > 0) {
+                    acc.heights[idx] = Math.min(pixelMax, acc.heights[idx] + addHeight);
+                }
+            }
+        }
+    }
+
+    return true;
+};
+
+/**
+ * Check if snowflake should be removed (out of bounds or landed).
+ */
+const shouldRemoveSnowflake = (
+    flake: Snowflake,
+    landed: boolean,
+    worldWidth: number,
+    worldHeight: number
+): boolean => {
+    return landed ||
+        flake.y > worldHeight + 10 ||
+        flake.x < -20 ||
+        flake.x > worldWidth + 20;
+};
+
 export const updateSnowflakes = (
     snowflakes: Snowflake[],
     elementRects: ElementSurface[],
@@ -266,106 +397,41 @@ export const updateSnowflakes = (
     for (let i = snowflakes.length - 1; i >= 0; i--) {
         const flake = snowflakes[i];
 
-        flake.wobble += flake.wobbleSpeed * dt;
-        flake.x += (flake.wind + Math.sin(flake.wobble) * 0.5) * dt;
-        flake.y += (flake.speed + Math.cos(flake.wobble * 0.5) * 0.1) * dt;
+        // Always update position and animation (cheap, must happen every frame)
+        updateSnowflakePosition(flake, dt);
 
         let landed = false;
 
-        for (const item of elementRects) {
-            const { rect, acc } = item;
-            const isBottom = acc.type === VAL_BOTTOM;
+        // OPTIMIZATION: Probabilistic collision detection
+        // Only check collisions for a percentage of snowflakes per frame
+        // Configurable via config.COLLISION_CHECK_RATE
+        const shouldCheckCollision = Math.random() < config.COLLISION_CHECK_RATE;
 
-            // Flake is World Space. Rect is Viewport Space.
-            // Map Flake to Viewport Relative for collision check vs Rect
+        if (shouldCheckCollision) {
+            // Map flake from World Space to Viewport Space for collision detection
             const flakeViewportX = flake.x - scrollX;
             const flakeViewportY = flake.y - scrollY;
 
-            // Simple Collision Check
-            const isInVerticalBounds = flakeViewportY >= rect.top && flakeViewportY <= rect.bottom;
+            for (const item of elementRects) {
+                const { rect, acc } = item;
+                const isBottom = acc.type === VAL_BOTTOM;
 
-            // Side collisions
-            // Check if flake hits the left or right edge of the element
-            if (!landed && acc.maxSideHeight > 0 && !isBottom) {
-                if (isInVerticalBounds) {
-                    const localY = Math.floor(flakeViewportY - rect.top);
-                    const borderRadius = acc.borderRadius;
-
-                    const isInTopCorner = localY < borderRadius;
-                    const isInBottomCorner = localY > rect.height - borderRadius;
-                    const isCorner = borderRadius > 0 && (isInTopCorner || isInBottomCorner);
-
-                    if (flakeViewportX >= rect.left - 5 && flakeViewportX < rect.left + 3) {
-                        if (!isCorner) {
-                            acc.leftMax = accumulateSide(acc.leftSide, rect.height, localY, acc.maxSideHeight, borderRadius, config, acc.leftMax);
-                            landed = true;
-                        }
-                    }
-
-                    if (!landed && flakeViewportX > rect.right - 3 && flakeViewportX <= rect.right + 5) {
-                        if (!isCorner) {
-                            acc.rightMax = accumulateSide(acc.rightSide, rect.height, localY, acc.maxSideHeight, borderRadius, config, acc.rightMax);
-                            landed = true;
-                        }
-                    }
-
+                // Check side collisions (left/right edges)
+                if (!landed && !isBottom) {
+                    landed = checkSideCollision(flake, flakeViewportX, flakeViewportY, rect, acc, config);
                     if (landed) break;
                 }
-            }
 
-            // Top/Bottom accumulation
-            // Check if flake hits the primary horizontal surface
-            if (flakeViewportX >= rect.left && flakeViewportX <= rect.right) {
-                const localX = Math.floor(flakeViewportX - rect.left);
-                const currentHeight = acc.heights[localX] || 0;
-                const maxHeight = acc.maxHeights[localX] || 5;
-
-                const surfaceY = isBottom ? rect.bottom - currentHeight : rect.top - currentHeight;
-
-                if (flakeViewportY >= surfaceY && flakeViewportY < surfaceY + 10 && currentHeight < maxHeight) {
-                    const shouldAccumulate = isBottom ? Math.random() < 0.15 : true;
-
-                    if (shouldAccumulate) {
-                        const baseSpread = Math.ceil(flake.radius);
-                        const spread = baseSpread + Math.floor(Math.random() * 2);
-                        const accumRate = isBottom ? config.ACCUMULATION.BOTTOM_RATE : config.ACCUMULATION.TOP_RATE;
-                        const centerOffset = Math.floor(Math.random() * 3) - 1;
-
-                        for (let dx = -spread; dx <= spread; dx++) {
-                            if (Math.random() < 0.15) continue;
-                            const idx = localX + dx + centerOffset;
-                            if (idx >= 0 && idx < acc.heights.length) {
-                                const dist = Math.abs(dx);
-                                const pixelMax = acc.maxHeights[idx] || 5;
-
-                                const normDist = dist / spread;
-                                const falloff = (Math.cos(normDist * Math.PI) + 1) / 2;
-                                const baseAdd = 0.3 * falloff;
-
-                                const randomFactor = 0.8 + Math.random() * 0.4;
-                                const addHeight = baseAdd * randomFactor * accumRate;
-
-                                if (acc.heights[idx] < pixelMax && addHeight > 0) {
-                                    acc.heights[idx] = Math.min(pixelMax, acc.heights[idx] + addHeight);
-                                }
-                            }
-                        }
-
-                        if (isBottom) {
-                            landed = true;
-                            break;
-                        }
-                    }
-
-                    if (!isBottom) {
-                        landed = true;
-                        break;
-                    }
+                // Check top/bottom surface collisions
+                if (!landed) {
+                    landed = checkSurfaceCollision(flake, flakeViewportX, flakeViewportY, rect, acc, isBottom, config);
+                    if (landed) break;
                 }
             }
         }
 
-        if (landed || flake.y > worldHeight + 10 || flake.x < -20 || flake.x > worldWidth + 20) {
+        // Remove snowflake if it landed or went out of bounds
+        if (shouldRemoveSnowflake(flake, landed, worldWidth, worldHeight)) {
             snowflakes.splice(i, 1);
         }
     }
