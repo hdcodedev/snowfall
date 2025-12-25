@@ -204,6 +204,8 @@ export const initializeAccumulation = (
             leftSide: existing?.leftSide.length === height ? existing.leftSide : new Array(height).fill(0),
             rightSide: existing?.rightSide.length === height ? existing.rightSide : new Array(height).fill(0),
             maxSideHeight: isBottom ? 0 : config.MAX_DEPTH.SIDE,
+            leftMax: existing?.leftSide.length === height ? existing.leftMax : 0,
+            rightMax: existing?.rightSide.length === height ? existing.rightMax : 0,
             borderRadius,
             curveOffsets: calculateCurveOffsets(width, borderRadius, isBottom),
             sideGravityMultipliers: calculateGravityMultipliers(height),
@@ -212,16 +214,22 @@ export const initializeAccumulation = (
     });
 };
 
+/**
+ * Accumulate snow on a side array and return the new max height.
+ * The caller should update acc.leftMax or acc.rightMax with the returned value.
+ */
 export const accumulateSide = (
     sideArray: number[],
     rectHeight: number,
     localY: number,
     maxSideHeight: number,
     borderRadius: number,
-    config: PhysicsConfig
-) => {
+    config: PhysicsConfig,
+    currentMax: number
+): number => {
     const spread = 4;
     const addHeight = config.ACCUMULATION.SIDE_RATE * (0.8 + Math.random() * 0.4);
+    let newMax = currentMax;
 
     for (let dy = -spread; dy <= spread; dy++) {
         const y = localY + dy;
@@ -232,9 +240,12 @@ export const accumulateSide = (
 
             const normalizedDist = Math.abs(dy) / spread;
             const falloff = (Math.cos(normalizedDist * Math.PI) + 1) / 2;
-            sideArray[y] = Math.min(maxSideHeight, sideArray[y] + addHeight * falloff);
+            const newHeight = Math.min(maxSideHeight, sideArray[y] + addHeight * falloff);
+            sideArray[y] = newHeight;
+            if (newHeight > newMax) newMax = newHeight;
         }
     }
+    return newMax;
 };
 
 export const updateSnowflakes = (
@@ -286,14 +297,14 @@ export const updateSnowflakes = (
 
                     if (flakeViewportX >= rect.left - 5 && flakeViewportX < rect.left + 3) {
                         if (!isCorner) {
-                            accumulateSide(acc.leftSide, rect.height, localY, acc.maxSideHeight, borderRadius, config);
+                            acc.leftMax = accumulateSide(acc.leftSide, rect.height, localY, acc.maxSideHeight, borderRadius, config, acc.leftMax);
                             landed = true;
                         }
                     }
 
                     if (!landed && flakeViewportX > rect.right - 3 && flakeViewportX <= rect.right + 5) {
                         if (!isCorner) {
-                            accumulateSide(acc.rightSide, rect.height, localY, acc.maxSideHeight, borderRadius, config);
+                            acc.rightMax = accumulateSide(acc.rightSide, rect.height, localY, acc.maxSideHeight, borderRadius, config, acc.rightMax);
                             landed = true;
                         }
                     }
@@ -383,9 +394,20 @@ export const meltAndSmoothAccumulation = (
         for (let i = 0; i < acc.heights.length; i++) {
             if (acc.heights[i] > 0) acc.heights[i] = Math.max(0, acc.heights[i] - meltRate);
         }
+        // Melt sides and update max values
+        let leftMax = 0;
+        let rightMax = 0;
         for (let i = 0; i < acc.leftSide.length; i++) {
-            if (acc.leftSide[i] > 0) acc.leftSide[i] = Math.max(0, acc.leftSide[i] - meltRate);
-            if (acc.rightSide[i] > 0) acc.rightSide[i] = Math.max(0, acc.rightSide[i] - meltRate);
+            if (acc.leftSide[i] > 0) {
+                acc.leftSide[i] = Math.max(0, acc.leftSide[i] - meltRate);
+                if (acc.leftSide[i] > leftMax) leftMax = acc.leftSide[i];
+            }
+            if (acc.rightSide[i] > 0) {
+                acc.rightSide[i] = Math.max(0, acc.rightSide[i] - meltRate);
+                if (acc.rightSide[i] > rightMax) rightMax = acc.rightSide[i];
+            }
         }
+        acc.leftMax = leftMax;
+        acc.rightMax = rightMax;
     }
 };
