@@ -46,18 +46,19 @@ jobs:
           git push origin $BRANCH_NAME
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: release/v${{ steps.version.outputs.NEW_VERSION }}
-          title: "Release v${{ steps.version.outputs.NEW_VERSION }}"
-          body: |
-            ## Release v${{ steps.version.outputs.NEW_VERSION }}
-            
-            This PR bumps the version to `${{ steps.version.outputs.NEW_VERSION }}`.
-            
-            **Merging this PR will automatically publish to NPM.**
-            
-            - [ ] Changelog updated
-            - [ ] All tests passing
-          labels: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "release/v${{ steps.version.outputs.NEW_VERSION }}" \
+            --title "Release v${{ steps.version.outputs.NEW_VERSION }}" \
+            --body "## Release v${{ steps.version.outputs.NEW_VERSION }}
+
+          This PR bumps the version to \`${{ steps.version.outputs.NEW_VERSION }}\`.
+
+          **Merging this PR will automatically publish to NPM.**
+
+          - [ ] Changelog updated
+          - [ ] All tests passing" \
+            --label "release"
