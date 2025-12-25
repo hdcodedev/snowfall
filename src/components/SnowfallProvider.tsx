@@ -21,6 +21,7 @@ export interface PhysicsConfig {
         MAX: number;
     };
     MAX_SURFACES: number;
+    COLLISION_CHECK_RATE: number;
 }
 
 export const DEFAULT_PHYSICS: PhysicsConfig = {
@@ -41,7 +42,8 @@ export const DEFAULT_PHYSICS: PhysicsConfig = {
         MIN: 0.5,
         MAX: 1.6,
     },
-    MAX_SURFACES: 15
+    MAX_SURFACES: 15,
+    COLLISION_CHECK_RATE: 0.3  // 30% of snowflakes check collisions per frame
 };
 
 export interface PerformanceMetrics {
