@@ -16,6 +16,9 @@ on:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,13 +34,12 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version
-        run: "npm version ${{ inputs.version_bump || 'patch' }} -m 'chore: bump version to %s'"
-
-      - name: Get new version
         id: version
-        run: echo "NEW_VERSION=$(node -p 'require(\"./package.json\").version')" >> $GITHUB_OUTPUT
+        run: |
+          npm version ${{ inputs.version_bump || 'patch' }} -m 'chore: bump version to %s'
+          echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Create release branch
+      - name: Create release branch and push
         run: |
           BRANCH_NAME="release/v${{ steps.version.outputs.NEW_VERSION }}"
           git checkout -b $BRANCH_NAME
