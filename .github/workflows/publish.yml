@@ -4,39 +4,41 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
+    paths:
+      - 'package.json'
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     environment: production
     permissions:
-      contents: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if version changed
+        id: version-check
+        run: |
+          if git diff HEAD~1 HEAD -- package.json | grep -q '"version"'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
+        if: steps.version-check.outputs.changed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies
+        if: steps.version-check.outputs.changed == 'true'
         run: npm ci
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Bump Version
-        run: npm version patch -m "Bump version to %s [skip ci]"
-
       - name: Publish to NPM
+        if: steps.version-check.outputs.changed == 'true'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Push Version Update
-        run: git push origin HEAD:main --follow-tags
