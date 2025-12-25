@@ -16,6 +16,9 @@ on:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,31 +34,31 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version
-        run: "npm version ${{ inputs.version_bump || 'patch' }} -m 'chore: bump version to %s'"
-
-      - name: Get new version
         id: version
-        run: echo "NEW_VERSION=$(node -p 'require(\"./package.json\").version')" >> $GITHUB_OUTPUT
+        run: |
+          npm version ${{ inputs.version_bump || 'patch' }} -m 'chore: bump version to %s'
+          echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Create release branch
+      - name: Create release branch and push
         run: |
           BRANCH_NAME="release/v${{ steps.version.outputs.NEW_VERSION }}"
           git checkout -b $BRANCH_NAME
           git push origin $BRANCH_NAME
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: release/v${{ steps.version.outputs.NEW_VERSION }}
-          title: "Release v${{ steps.version.outputs.NEW_VERSION }}"
-          body: |
-            ## Release v${{ steps.version.outputs.NEW_VERSION }}
-            
-            This PR bumps the version to `${{ steps.version.outputs.NEW_VERSION }}`.
-            
-            **Merging this PR will automatically publish to NPM.**
-            
-            - [ ] Changelog updated
-            - [ ] All tests passing
-          labels: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "release/v${{ steps.version.outputs.NEW_VERSION }}" \
+            --title "Release v${{ steps.version.outputs.NEW_VERSION }}" \
+            --body "## Release v${{ steps.version.outputs.NEW_VERSION }}
+
+          This PR bumps the version to \`${{ steps.version.outputs.NEW_VERSION }}\`.
+
+          **Merging this PR will automatically publish to NPM.**
+
+          - [ ] Changelog updated
+          - [ ] All tests passing" \
+            --label "release"
