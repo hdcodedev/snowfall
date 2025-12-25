@@ -53,8 +53,4 @@ jobs:
             --base main \
             --head "release/v${{ steps.version.outputs.NEW_VERSION }}" \
             --title "Release v${{ steps.version.outputs.NEW_VERSION }}" \
-            --body "## Release v${{ steps.version.outputs.NEW_VERSION }}
-
-          This PR bumps the version to \`${{ steps.version.outputs.NEW_VERSION }}\`.
-
-          **Merging this PR will automatically publish to NPM.**
+            --body "Bumps version to ${{ steps.version.outputs.NEW_VERSION }}. Merging this PR will automatically publish to NPM."
