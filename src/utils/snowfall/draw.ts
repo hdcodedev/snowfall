@@ -6,31 +6,32 @@ const ACC_SHADOW_COLOR = 'rgba(200, 230, 255, 0.6)';
 
 
 /**
- * Batched snowflake rendering for optimal performance.
+ * Single-pass snowflake rendering for optimal cache locality.
  * Flakes are tracked in World Space.
  * The Canvas Context is translated by (-scrollX, -scrollY), effectively viewing the World.
+ * 
+ * PERFORMANCE: All glow/core values are pre-calculated at creation time (physics.ts),
+ * enabling a simple single-pass render with excellent cache performance.
  */
 export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[]) => {
     if (flakes.length === 0) return;
 
-    // Hoist fillStyle outside the loop - set once for all flakes
     ctx.fillStyle = '#FFFFFF';
 
-    // First pass: Draw all snowflake cores
+    // Single pass: Draw glow (behind) then core (front) for each flake
     for (const flake of flakes) {
+        // Draw glow effect first (behind the core) - skip for background flakes
+        if (!flake.isBackground) {
+            ctx.globalAlpha = flake.glowOpacity;
+            ctx.beginPath();
+            ctx.arc(flake.x, flake.y, flake.glowRadius, 0, TAU);
+            ctx.fill();
+        }
+
+        // Draw core on top
         ctx.globalAlpha = flake.opacity;
         ctx.beginPath();
         ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
-        ctx.fill();
-    }
-
-    // Second pass: Draw glow effects (skip for background flakes - they're smaller/fainter)
-    for (const flake of flakes) {
-        if (flake.isBackground) continue;
-
-        ctx.globalAlpha = flake.opacity * 0.2;
-        ctx.beginPath();
-        ctx.arc(flake.x, flake.y, flake.radius * 1.5, 0, TAU);
         ctx.fill();
     }
 
@@ -40,7 +41,9 @@ export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[
 
 export const drawAccumulations = (
     ctx: CanvasRenderingContext2D,
-    elementRects: ElementSurface[]
+    elementRects: ElementSurface[],
+    scrollX: number,
+    scrollY: number
 ) => {
     ctx.fillStyle = ACC_FILL_STYLE;
     ctx.shadowColor = ACC_SHADOW_COLOR;
@@ -48,9 +51,6 @@ export const drawAccumulations = (
     ctx.shadowOffsetY = -1;
     // Explicitly reset alpha as we modified it in drawSnowflake
     ctx.globalAlpha = 1.0;
-
-    const currentScrollX = window.scrollX;
-    const currentScrollY = window.scrollY;
 
     ctx.beginPath();
 
@@ -60,12 +60,12 @@ export const drawAccumulations = (
 
         if (!acc.heights.some(h => h > 0.1)) continue;
 
-        // Convert Viewport Rect to World Space for Drawing (match Context)
-        const dx = currentScrollX;
-        const dy = currentScrollY;
-
         const isBottom = acc.type === VAL_BOTTOM;
         const baseY = isBottom ? rect.bottom - 1 : rect.top + 1;
+
+        // Precompute world-space coordinates (hoist additions out of loops)
+        const worldLeft = rect.left + scrollX;
+        const worldBaseY = baseY + scrollY;
 
         let first = true;
         const step = 2;
@@ -74,8 +74,8 @@ export const drawAccumulations = (
         // Draw the uneven top surface of the snow
         for (let x = 0; x < len; x += step) {
             const height = acc.heights[x] || 0;
-            const px = rect.left + x + dx;
-            const py = baseY - height + (acc.curveOffsets[x] || 0) + dy;
+            const px = worldLeft + x;
+            const py = worldBaseY - height + (acc.curveOffsets[x] || 0);
             if (first) {
                 ctx.moveTo(px, py);
                 first = false;
@@ -87,21 +87,21 @@ export const drawAccumulations = (
         if ((len - 1) % step !== 0) {
             const x = len - 1;
             const height = acc.heights[x] || 0;
-            const px = rect.left + x + dx;
-            const py = baseY - height + (acc.curveOffsets[x] || 0) + dy;
+            const px = worldLeft + x;
+            const py = worldBaseY - height + (acc.curveOffsets[x] || 0);
             ctx.lineTo(px, py);
         }
 
         // Draw the bottom edge (aligned with element border) to close the shape
         for (let x = len - 1; x >= 0; x -= step) {
-            const px = rect.left + x + dx;
-            const py = baseY + (acc.curveOffsets[x] || 0) + dy;
+            const px = worldLeft + x;
+            const py = worldBaseY + (acc.curveOffsets[x] || 0);
             ctx.lineTo(px, py);
         }
 
         const startX = 0;
-        const startPx = rect.left + startX + dx;
-        const startPy = baseY + (acc.curveOffsets[startX] || 0) + dy;
+        const startPx = worldLeft + startX;
+        const startPy = worldBaseY + (acc.curveOffsets[startX] || 0);
         ctx.lineTo(startPx, startPy);
     }
 
@@ -114,22 +114,26 @@ export const drawAccumulations = (
 
 export const drawSideAccumulations = (
     ctx: CanvasRenderingContext2D,
-    elementRects: ElementSurface[]
+    elementRects: ElementSurface[],
+    scrollX: number,
+    scrollY: number
 ) => {
     ctx.fillStyle = ACC_FILL_STYLE;
     ctx.shadowColor = ACC_SHADOW_COLOR;
     ctx.shadowBlur = 3;
     ctx.globalAlpha = 1.0;
 
-    const currentScrollX = window.scrollX;
-    const currentScrollY = window.scrollY;
-
     ctx.beginPath();
 
     const drawSide = (sideArray: number[], isLeft: boolean, multipliers: number[], rect: DOMRect, dx: number, dy: number) => {
         const baseX = isLeft ? rect.left : rect.right;
 
-        ctx.moveTo(baseX + dx, rect.top + dy);
+        // Precompute world-space coordinates
+        const worldBaseX = baseX + dx;
+        const worldTop = rect.top + dy;
+        const worldBottom = rect.bottom + dy;
+
+        ctx.moveTo(worldBaseX, worldTop);
 
         // Draw the uneven side profile
         for (let y = 0; y < sideArray.length; y += 2) {
@@ -139,18 +143,18 @@ export const drawSideAccumulations = (
 
             const gravityMultiplier = multipliers[y] || 0;
 
-            const py = rect.top + y + dy;
-            const px = (isLeft ? baseX - (width * gravityMultiplier) : baseX + (width * gravityMultiplier)) + dx;
-            const ny = rect.top + nextY + dy;
+            const py = worldTop + y;
+            const px = (isLeft ? worldBaseX - (width * gravityMultiplier) : worldBaseX + (width * gravityMultiplier));
+            const ny = worldTop + nextY;
             const nGravityMultiplier = multipliers[nextY] || 0;
-            const nx = (isLeft ? baseX - (nextWidth * nGravityMultiplier) : baseX + (nextWidth * nGravityMultiplier)) + dx;
+            const nx = (isLeft ? worldBaseX - (nextWidth * nGravityMultiplier) : worldBaseX + (nextWidth * nGravityMultiplier));
 
             ctx.lineTo(px, py);
             ctx.lineTo(nx, ny);
         }
 
         // Close at the bottom
-        ctx.lineTo(baseX + dx, rect.bottom + dy);
+        ctx.lineTo(worldBaseX, worldBottom);
     };
 
     // Scan elements and append their side snow profiles to the current path for batched rendering
@@ -164,11 +168,8 @@ export const drawSideAccumulations = (
 
         if (!hasLeftSnow && !hasRightSnow) continue;
 
-        const dx = currentScrollX;
-        const dy = currentScrollY;
-
-        if (hasLeftSnow) drawSide(acc.leftSide, true, acc.sideGravityMultipliers, rect, dx, dy);
-        if (hasRightSnow) drawSide(acc.rightSide, false, acc.sideGravityMultipliers, rect, dx, dy);
+        if (hasLeftSnow) drawSide(acc.leftSide, true, acc.sideGravityMultipliers, rect, scrollX, scrollY);
+        if (hasRightSnow) drawSide(acc.rightSide, false, acc.sideGravityMultipliers, rect, scrollX, scrollY);
     }
 
     ctx.fill();

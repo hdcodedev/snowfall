@@ -20,6 +20,10 @@ export default function Snowfall() {
     const accumulationRef = useRef<Map<Element, SnowAccumulation>>(new Map());
     const animationIdRef = useRef<number>(0);
 
+    // Cache DPR to avoid reading it every frame (only changes on resize)
+    // Initialize with safe default for SSR, actual value set in resizeCanvas
+    const dprRef = useRef(1);
+
     // Performance metrics tracking
     const fpsFrames = useRef<number[]>([]);
     const metricsRef = useRef({
@@ -63,8 +67,9 @@ export default function Snowfall() {
                 const newWidth = window.innerWidth;
                 const newHeight = window.innerHeight;
 
-                // Handle high DPI displays
+                // Handle high DPI displays - cache DPR in ref for use in animation loop
                 const dpr = window.devicePixelRatio || 1;
+                dprRef.current = dpr;
                 canvasRef.current.width = newWidth * dpr;
                 canvasRef.current.height = newHeight * dpr;
 
@@ -154,8 +159,8 @@ export default function Snowfall() {
             const clearStart = performance.now();
 
             // Reset transform to clear the entire viewport-sized canvas
-            // We use the dpr scaling, so we clear the logical width/height
-            const dpr = window.devicePixelRatio || 1;
+            // We use the cached dpr scaling, so we clear the logical width/height
+            const dpr = dprRef.current;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
@@ -193,18 +198,37 @@ export default function Snowfall() {
             const drawStart = performance.now();
             drawSnowflakes(ctx, snowflakes);
 
-            // Spawn new snowflakes
+            // Spawn new snowflakes with adaptive rate based on performance
             if (isEnabledRef.current && snowflakes.length < physicsConfigRef.current.MAX_FLAKES) {
-                const isBackground = Math.random() < 0.4;
-                // createSnowflake uses window.scrollY, so it creates flakes in world space
-                snowflakes.push(createSnowflake(document.documentElement.scrollWidth, physicsConfigRef.current, isBackground));
+                const currentFps = fpsFrames.current.length;
+
+                // Adaptive spawn rate: reduce load when FPS is low to prevent death spirals
+                // Low FPS (<40): 20% spawn rate | Normal FPS: 100% spawn rate
+                const shouldSpawn = currentFps >= 40 || Math.random() < 0.2;
+
+                if (shouldSpawn) {
+                    const isBackground = Math.random() < 0.4;
+                    snowflakes.push(createSnowflake(document.documentElement.scrollWidth, physicsConfigRef.current, isBackground));
+                }
             }
 
             // Draw Accumulation
-            // We draw accumulations in World Space (by adding scroll offset in draw.ts)
+            // We draw accumulations in World Space (by passing scroll offset to draw functions)
             // This aligns perfectly with the translated context and world-space snowflakes.
-            drawAccumulations(ctx, elementRects);
-            drawSideAccumulations(ctx, elementRects);
+
+            // Viewport culling: Filter to only visible elements before drawing
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const visibleRects = elementRects.filter(({ rect }) =>
+                rect.right >= 0 && rect.left <= viewportWidth &&
+                rect.bottom >= 0 && rect.top <= viewportHeight
+            );
+
+            // Only call draw functions if there are visible elements
+            if (visibleRects.length > 0) {
+                drawAccumulations(ctx, visibleRects, scrollX, scrollY);
+                drawSideAccumulations(ctx, visibleRects, scrollX, scrollY);
+            }
 
             metricsRef.current.drawTime = performance.now() - drawStart;
             metricsRef.current.frameTime = performance.now() - frameStartTime;
