@@ -58,7 +58,3 @@ jobs:
           This PR bumps the version to \`${{ steps.version.outputs.NEW_VERSION }}\`.
 
           **Merging this PR will automatically publish to NPM.**
-
-          - [ ] Changelog updated
-          - [ ] All tests passing" \
-            --label "release"
