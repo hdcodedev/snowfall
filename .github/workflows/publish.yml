@@ -20,7 +20,8 @@ jobs:
       - name: Check if version changed
         id: version-check
         run: |
-          if git diff HEAD~1 HEAD -- package.json | grep -q '"version"'; then
+          git fetch origin ${{ github.event.before }} --depth=1 2>/dev/null || true
+          if git diff ${{ github.event.before }} ${{ github.sha }} -- package.json | grep -q '"version"'; then
             echo "changed=true" >> $GITHUB_OUTPUT
           else
             echo "changed=false" >> $GITHUB_OUTPUT
