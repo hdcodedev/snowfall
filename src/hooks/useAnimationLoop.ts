@@ -1,11 +1,11 @@
 'use client';
 
 import { useRef, useCallback } from 'react';
-import { Snowflake, SnowAccumulation } from '../utils/snowfall/types';
-import { PhysicsConfig } from '../SnowfallProvider';
-import { getElementRects, ElementSurface } from '../utils/snowfall/dom';
-import { createSnowflake, meltAndSmoothAccumulation, updateSnowflakes } from '../utils/snowfall/physics';
-import { drawAccumulations, drawSideAccumulations, drawSnowflakes } from '../utils/snowfall/draw';
+import { Snowflake, SnowAccumulation } from '../core/types';
+import { PhysicsConfig } from '../components/SnowfallProvider';
+import { getElementRects, ElementSurface } from '../core/dom';
+import { createSnowflake, meltAndSmoothAccumulation, updateSnowflakes } from '../core/physics';
+import { drawAccumulations, drawSideAccumulations, drawSnowflakes } from '../core/draw';
 
 interface UseAnimationLoopParams {
     canvasRef: { current: HTMLCanvasElement | null };
