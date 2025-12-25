@@ -359,9 +359,16 @@ const checkSurfaceCollision = (
                 }
             }
         }
+
+        // For bottom surfaces, only land if accumulation happened
+        if (isBottom) {
+            return true;  // We only get here if shouldAccumulate was true
+        }
     }
 
-    return true;
+    // For top surfaces, always land when hitting the surface
+    // For bottom surfaces that didn't accumulate, don't land (return false)
+    return !isBottom;
 };
 
 /**
