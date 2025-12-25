@@ -1,4 +1,6 @@
 import { SnowAccumulation, ElementSurface, SnowfallSurface } from './types';
+
+export type { ElementSurface };
 import {
     ATTR_SNOWFALL, VAL_IGNORE, VAL_TOP, VAL_BOTTOM,
     TAG_HEADER, TAG_FOOTER, ROLE_BANNER, ROLE_CONTENTINFO

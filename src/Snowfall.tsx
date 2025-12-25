@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSnowfall } from './SnowfallProvider';
 import { Snowflake, SnowAccumulation } from './utils/snowfall/types';
-import { getElementRects } from './utils/snowfall/dom';
-import { createSnowflake, initializeAccumulation, meltAndSmoothAccumulation, updateSnowflakes } from './utils/snowfall/physics';
-import { drawAccumulations, drawSideAccumulations, drawSnowflakes } from './utils/snowfall/draw';
+import { initializeAccumulation } from './utils/snowfall/physics';
+import { usePerformanceMetrics } from './hooks/usePerformanceMetrics';
+import { useSnowfallCanvas } from './hooks/useSnowfallCanvas';
+import { useAnimationLoop } from './hooks/useAnimationLoop';
 
 export default function Snowfall() {
     const { isEnabled, physicsConfig, setMetrics } = useSnowfall();
@@ -15,25 +16,28 @@ export default function Snowfall() {
     const [isMounted, setIsMounted] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
 
-    const canvasRef = useRef<HTMLCanvasElement>(null);
     const snowflakesRef = useRef<Snowflake[]>([]);
     const accumulationRef = useRef<Map<Element, SnowAccumulation>>(new Map());
-    const animationIdRef = useRef<number>(0);
 
-    // Cache DPR to avoid reading it every frame (only changes on resize)
-    // Initialize with safe default for SSR, actual value set in resizeCanvas
-    const dprRef = useRef(1);
+    // Canvas setup
+    const { canvasRef, dprRef, resizeCanvas } = useSnowfallCanvas();
 
     // Performance metrics tracking
-    const fpsFrames = useRef<number[]>([]);
-    const metricsRef = useRef({
-        scanTime: 0,
-        rectUpdateTime: 0,
-        frameTime: 0,
-        rafGap: 0,
-        clearTime: 0,
-        physicsTime: 0,
-        drawTime: 0,
+    const { metricsRef, updateFps, getCurrentFps, buildMetrics } = usePerformanceMetrics();
+
+    // Animation loop
+    const { start: startAnimation, stop: stopAnimation, markRectsDirty } = useAnimationLoop({
+        canvasRef,
+        dprRef,
+        snowflakesRef,
+        accumulationRef,
+        isEnabledRef,
+        physicsConfigRef,
+        metricsRef,
+        updateFps,
+        getCurrentFps,
+        buildMetrics,
+        setMetricsRef,
     });
 
     useEffect(() => {
@@ -61,29 +65,9 @@ export default function Snowfall() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const resizeCanvas = () => {
-            if (canvasRef.current) {
-                // Use viewport dimensions for fixed canvas
-                const newWidth = window.innerWidth;
-                const newHeight = window.innerHeight;
-
-                // Handle high DPI displays - cache DPR in ref for use in animation loop
-                const dpr = window.devicePixelRatio || 1;
-                dprRef.current = dpr;
-                canvasRef.current.width = newWidth * dpr;
-                canvasRef.current.height = newHeight * dpr;
-
-                // Set CSS size
-                canvasRef.current.style.width = `${newWidth}px`;
-                canvasRef.current.style.height = `${newHeight}px`;
-            }
-        };
         resizeCanvas();
 
-        const windowResizeObserver = new ResizeObserver(() => {
-            resizeCanvas();
-        });
-        windowResizeObserver.observe(document.body);
+        snowflakesRef.current = [];
 
         // Separate observer for snow accumulation surfaces
         const surfaceObserver = new ResizeObserver((entries) => {
@@ -97,16 +81,9 @@ export default function Snowfall() {
             }
             if (needsUpdate) {
                 // Re-run initialization to adapt to new sizes
-                // We do NOT want to infinitely recurse, so initAccumulationWrapper
-                // must be careful about disconnection if called from here.
-                // Actually, we don't need to disconnect/reconnect here if the set of elements hasn't changed,
-                // but getAccumulationSurfaces (called by init) might find new ones or drop old ones.
-                // For simplicity, we just trigger the scan.
                 initAccumulationWrapper();
             }
         });
-
-        snowflakesRef.current = [];
 
         const initAccumulationWrapper = () => {
             const scanStart = performance.now();
@@ -119,6 +96,8 @@ export default function Snowfall() {
             }
 
             metricsRef.current.scanTime = performance.now() - scanStart;
+            // Mark rects dirty so they get recalculated on next frame
+            markRectsDirty();
         };
         initAccumulationWrapper();
 
@@ -127,151 +106,51 @@ export default function Snowfall() {
             if (isMounted) setIsVisible(true);
         });
 
-        let lastTime = 0;
-        let lastMetricsUpdate = 0;
-        // Holds current frame's element positions
-        let elementRects: ReturnType<typeof getElementRects> = [];
-
-        const animate = (currentTime: number) => {
-            if (lastTime === 0) {
-                lastTime = currentTime;
-                animationIdRef.current = requestAnimationFrame(animate);
-                return;
-            }
-
-
-            const deltaTime = Math.min(currentTime - lastTime, 50);
-
-            // Always track FPS so we have data when panel opens
-            const now = performance.now();
-            fpsFrames.current.push(now);
-            fpsFrames.current = fpsFrames.current.filter(t => now - t < 1000);
-
-            // Track detailed performance metrics
-            metricsRef.current.rafGap = currentTime - lastTime;
-
-            lastTime = currentTime;
-            const dt = deltaTime / 16.67;
-
-            const frameStartTime = performance.now();
-
-            // Time canvas clear
-            const clearStart = performance.now();
-
-            // Reset transform to clear the entire viewport-sized canvas
-            // We use the cached dpr scaling, so we clear the logical width/height
-            const dpr = dprRef.current;
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-
-            // Translate the context to Simulate Scrolling
-            // We move the 'world' up by scrollY, so absolute coordinates draw in the correct place relative to viewport
-            const scrollX = window.scrollX;
-            const scrollY = window.scrollY;
-            ctx.translate(-scrollX, -scrollY);
-
-            metricsRef.current.clearTime = performance.now() - clearStart;
-
-            const snowflakes = snowflakesRef.current;
-
-            // PERFORMANCE: Update element rects EVERY FRAME to track layout changes and animations
-            // getBoundingClientRect() is necessary to handle moving/animating elements
-            // getBoundingClientRect() is fast enough for the accumulation targets (< 50 elements)
-            const rectStart = performance.now();
-            elementRects = getElementRects(accumulationRef.current);
-            metricsRef.current.rectUpdateTime = performance.now() - rectStart;
-
-            // Time physics
-            const physicsStart = performance.now();
-            meltAndSmoothAccumulation(elementRects, physicsConfigRef.current, dt);
-            updateSnowflakes(
-                snowflakes,
-                elementRects,
-                physicsConfigRef.current,
-                dt,
-                document.documentElement.scrollWidth,
-                document.documentElement.scrollHeight
-            );
-            metricsRef.current.physicsTime = performance.now() - physicsStart;
-
-            // Draw Snowflakes (batched for performance)
-            const drawStart = performance.now();
-            drawSnowflakes(ctx, snowflakes);
-
-            // Spawn new snowflakes with adaptive rate based on performance
-            if (isEnabledRef.current && snowflakes.length < physicsConfigRef.current.MAX_FLAKES) {
-                const currentFps = fpsFrames.current.length;
-
-                // Adaptive spawn rate: reduce load when FPS is low to prevent death spirals
-                // Low FPS (<40): 20% spawn rate | Normal FPS: 100% spawn rate
-                const shouldSpawn = currentFps >= 40 || Math.random() < 0.2;
-
-                if (shouldSpawn) {
-                    const isBackground = Math.random() < 0.4;
-                    snowflakes.push(createSnowflake(document.documentElement.scrollWidth, physicsConfigRef.current, isBackground));
-                }
-            }
-
-            // Draw Accumulation
-            // We draw accumulations in World Space (by passing scroll offset to draw functions)
-            // This aligns perfectly with the translated context and world-space snowflakes.
-
-            // Viewport culling: Filter to only visible elements before drawing
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const visibleRects = elementRects.filter(({ rect }) =>
-                rect.right >= 0 && rect.left <= viewportWidth &&
-                rect.bottom >= 0 && rect.top <= viewportHeight
-            );
-
-            // Only call draw functions if there are visible elements
-            if (visibleRects.length > 0) {
-                drawAccumulations(ctx, visibleRects, scrollX, scrollY);
-                drawSideAccumulations(ctx, visibleRects, scrollX, scrollY);
-            }
-
-            metricsRef.current.drawTime = performance.now() - drawStart;
-            metricsRef.current.frameTime = performance.now() - frameStartTime;
-
-            // Update metrics every 500ms
-            if (currentTime - lastMetricsUpdate > 500) {
-                setMetricsRef.current({
-                    fps: fpsFrames.current.length,
-                    frameTime: metricsRef.current.frameTime,
-                    scanTime: metricsRef.current.scanTime,
-                    rectUpdateTime: metricsRef.current.rectUpdateTime,
-                    surfaceCount: accumulationRef.current.size,
-                    flakeCount: snowflakes.length,
-                    maxFlakes: physicsConfigRef.current.MAX_FLAKES,
-                    rafGap: metricsRef.current.rafGap,
-                    clearTime: metricsRef.current.clearTime,
-                    physicsTime: metricsRef.current.physicsTime,
-                    drawTime: metricsRef.current.drawTime,
-                });
-                lastMetricsUpdate = currentTime;
-            }
-
-            animationIdRef.current = requestAnimationFrame(animate);
-        };
-
-        animationIdRef.current = requestAnimationFrame(animate);
+        // Start the animation loop
+        startAnimation();
 
         const handleResize = () => {
             resizeCanvas();
             accumulationRef.current.clear();
             initAccumulationWrapper();
+            markRectsDirty();
         };
 
         window.addEventListener('resize', handleResize);
 
-        // Periodic surface scan every 5 seconds to detect DOM changes
-        const checkInterval = setInterval(initAccumulationWrapper, 5000);
+        // Observe window/body resize
+        const windowResizeObserver = new ResizeObserver(() => {
+            resizeCanvas();
+        });
+        windowResizeObserver.observe(document.body);
+
+        // Observe DOM mutations to detect new/removed elements
+        const mutationObserver = new MutationObserver((mutations) => {
+            // Check if any mutations actually added or removed nodes
+            let hasStructuralChange = false;
+            for (const mutation of mutations) {
+                if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
+                    hasStructuralChange = true;
+                    break;
+                }
+            }
+            if (hasStructuralChange) {
+                const scanStart = performance.now();
+                initializeAccumulation(accumulationRef.current, physicsConfigRef.current);
+                metricsRef.current.scanTime = performance.now() - scanStart;
+                markRectsDirty();
+            }
+        });
+        mutationObserver.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
 
         return () => {
-            cancelAnimationFrame(animationIdRef.current);
+            stopAnimation();
             window.removeEventListener('resize', handleResize);
-            clearInterval(checkInterval);
             windowResizeObserver.disconnect();
+            mutationObserver.disconnect();
             surfaceObserver.disconnect();
         };
     }, [isMounted]);
