@@ -163,8 +163,8 @@ export const drawSideAccumulations = (
 
         if (acc.maxSideHeight === 0) continue;
 
-        const hasLeftSnow = acc.leftSide.some(h => h > 0.3);
-        const hasRightSnow = acc.rightSide.some(h => h > 0.3);
+        const hasLeftSnow = acc.leftMax > 0.3;
+        const hasRightSnow = acc.rightMax > 0.3;
 
         if (!hasLeftSnow && !hasRightSnow) continue;
 
