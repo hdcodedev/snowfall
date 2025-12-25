@@ -1,4 +1,4 @@
-import { PhysicsConfig } from '../../SnowfallProvider';
+import { PhysicsConfig } from '../components/SnowfallProvider';
 import { Snowflake, SnowAccumulation, ElementSurface } from './types';
 import { getAccumulationSurfaces } from './dom';
 import { VAL_BOTTOM, TAU } from './constants';

@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSnowfall } from './SnowfallProvider';
-import { Snowflake, SnowAccumulation } from './utils/snowfall/types';
-import { initializeAccumulation } from './utils/snowfall/physics';
-import { usePerformanceMetrics } from './hooks/usePerformanceMetrics';
-import { useSnowfallCanvas } from './hooks/useSnowfallCanvas';
-import { useAnimationLoop } from './hooks/useAnimationLoop';
+import { Snowflake, SnowAccumulation } from '../core/types';
+import { initializeAccumulation } from '../core/physics';
+import { usePerformanceMetrics } from '../hooks/usePerformanceMetrics';
+import { useSnowfallCanvas } from '../hooks/useSnowfallCanvas';
+import { useAnimationLoop } from '../hooks/useAnimationLoop';
 
 export default function Snowfall() {
     const { isEnabled, physicsConfig, setMetrics } = useSnowfall();
