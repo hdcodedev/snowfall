@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useCallback } from 'react';
-import { PerformanceMetrics } from '../SnowfallProvider';
+import { PerformanceMetrics } from '../components/SnowfallProvider';
 
 /**
  * Custom hook for tracking performance metrics with zero per-frame allocations.
