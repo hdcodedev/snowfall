@@ -3,6 +3,19 @@ import { Snowflake, SnowAccumulation, ElementSurface } from './types';
 import { getAccumulationSurfaces } from './dom';
 import { VAL_BOTTOM, TAU } from './constants';
 
+// Opacity buckets for batched rendering (reduce globalAlpha state changes)
+const OPACITY_BUCKETS = [0.3, 0.5, 0.7, 0.9];
+
+/**
+ * Quantize opacity to nearest bucket for efficient batching during draw.
+ * This eliminates runtime bucketing overhead by snapping at creation time.
+ */
+const quantizeOpacity = (opacity: number): number => {
+    return OPACITY_BUCKETS.reduce((prev, curr) =>
+        Math.abs(curr - opacity) < Math.abs(prev - opacity) ? curr : prev
+    );
+};
+
 export const createSnowflake = (
     worldWidth: number,
     config: PhysicsConfig,
@@ -53,17 +66,28 @@ export const createSnowflake = (
         };
 
     const radius = profile.sizeMin + sizeRatio * profile.sizeRange;
+    const glowRadius = radius * 1.5;
+
+    // Calculate opacity and quantize to bucket for efficient batched rendering
+    const rawOpacity = profile.opacityBase + sizeRatio * profile.opacityScale;
+    const opacity = quantizeOpacity(rawOpacity);
+
+    // Pre-calculate glow opacity (also quantized for batching)
+    const rawGlowOpacity = opacity * 0.2;
+    const glowOpacity = quantizeOpacity(rawGlowOpacity);
 
     return {
         x: x,
         y: window.scrollY - 5,
         radius: radius,
+        glowRadius: glowRadius,
         speed:
             radius * profile.speedScale +
             noise.speed * profile.noiseSpeedScale +
             profile.speedBase,
         wind: (noise.wind - 0.5) * profile.windScale,
-        opacity: profile.opacityBase + sizeRatio * profile.opacityScale,
+        opacity: opacity,
+        glowOpacity: glowOpacity,
         wobble: noise.wobblePhase * TAU,
         wobbleSpeed: noise.wobbleSpeed * profile.wobbleScale + profile.wobbleBase,
         sizeRatio: sizeRatio,
