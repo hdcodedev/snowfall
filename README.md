@@ -12,13 +12,13 @@ A realistic snowfall effect for React with physics-based accumulation on surface
 ## Features
 
 - **Realistic Physics** - Wind, wobble, and varied snowflake speeds
-- **Surface Accumulation** - Snow naturally accumulates on elements
-- **Melting Effect** - Snow gradually melts over time
+- **Surface Accumulation** - Snow naturally piles up on elements
+- **Melting Effect** - Gradual melting over time
 - **Border-Radius Aware** - Respects rounded corners
-- **Smart Detection** - Automatically detects and accumulates on specified elements
-- **Optimized Performance** - Efficient canvas rendering with ResizeObserver
-- **Toggleable** - Built-in provider for enabling/disabling
-- **Responsive** - Adapts to viewport and element size changes
+- **Auto-Detection** - Automatically finds and accumulates on semantic elements
+- **High Performance** - Smooth 60 FPS with adaptive optimizations
+- **Toggleable** - Enable/disable on demand
+- **Responsive** - Adapts to viewport and element changes
 
 ## Installation
 
@@ -107,8 +107,6 @@ const customPhysics = {
     MAX: 1.6,                   // Maximum flake radius
   }
 };
-
-// Then use it in your provider - see API section below
 ```
 
 ## API
@@ -117,13 +115,9 @@ const customPhysics = {
 
 Wraps your app to provide snowfall context.
 
-**Props:** None
-
 ### `<Snowfall />`
 
 The main snowfall canvas component. Must be used within `SnowfallProvider`.
-
-**Props:** None
 
 ### `useSnowfall()`
 
@@ -145,7 +139,6 @@ Hook to access snowfall controls. Must be used within `SnowfallProvider`.
 - The snowfall canvas has `pointer-events: none`, so it won't interfere with user interactions
 - Snow accumulation works best on static or slowly-changing layouts
 - The component uses `'use client'` directive for Next.js 13+ App Router compatibility
-- For best performance, limit the number of accumulation surfaces
 
 ## Performance Optimizations
 
@@ -190,12 +183,6 @@ Licensed under the [Apache 2.0 License](LICENSE).
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! If you like this project, please give it a star ⭐
 
-## Show Your Support
-
-If you like this project, please consider giving it a star on GitHub!
-
-## Issues
-
-Found a bug? Please [open an issue](https://github.com/hdcodedev/snowfall/issues) on GitHub.
+Found a bug or have a feature request? [Open an issue](https://github.com/hdcodedev/snowfall/issues) on GitHub.
