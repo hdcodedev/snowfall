@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Snowfall, SnowfallProvider, DebugPanel } from '@hdcodedev/snowfall';
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
           <DebugPanel defaultOpen={false} />
           {children}
         </SnowfallProvider>
+        <Analytics />
       </body>
     </html>
   );
