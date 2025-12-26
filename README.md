@@ -147,6 +147,25 @@ Hook to access snowfall controls. Must be used within `SnowfallProvider`.
 - The component uses `'use client'` directive for Next.js 13+ App Router compatibility
 - For best performance, limit the number of accumulation surfaces
 
+## Performance Optimizations
+
+Key optimizations for smooth 60 FPS performance:
+
+- **Probabilistic Collision Detection**: Only 30% of snowflakes check collisions per frame (configurable via `COLLISION_CHECK_RATE`), significantly reducing CPU load while maintaining visual quality
+- **Adaptive Spawn Rate**: Automatically reduces snowflake spawning when FPS drops below 40 to prevent performance degradation
+- **Viewport Culling**: Only renders accumulation for visible elements
+- **Zero-allocation FPS Tracking**: Uses a second-bucket approach to eliminate per-frame memory allocations
+
+**Tuning for lower-end devices:**
+```tsx
+const customPhysics = {
+  ...DEFAULT_PHYSICS,
+  MAX_FLAKES: 200,
+  COLLISION_CHECK_RATE: 0.1,
+  MAX_SURFACES: 15,
+};
+```
+
 ## Development
 
 ```bash
