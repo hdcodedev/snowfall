@@ -75,8 +75,8 @@ interface SnowfallContextType {
 
 const SnowfallContext = createContext<SnowfallContextType | undefined>(undefined);
 
-export function SnowfallProvider({ children, initialDebug = false }: { children: ReactNode; initialDebug?: boolean }) {
-    const [isEnabled, setIsEnabled] = useState(true);
+export function SnowfallProvider({ children, initialDebug = false, initialEnabled = true }: { children: ReactNode; initialDebug?: boolean; initialEnabled?: boolean }) {
+    const [isEnabled, setIsEnabled] = useState(initialEnabled);
     const [physicsConfig, setPhysicsConfig] = useState<PhysicsConfig>(DEFAULT_PHYSICS);
     const [debugMode, setDebugMode] = useState(initialDebug);
     const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
