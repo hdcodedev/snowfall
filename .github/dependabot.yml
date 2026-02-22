@@ -13,7 +13,7 @@ updates:
       root-all-deps:
         patterns:
           - "*"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
   - package-ecosystem: "npm"
     directory: "/demo"
     schedule:
@@ -22,4 +22,4 @@ updates:
       demo-all-deps:
         patterns:
           - "*"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
