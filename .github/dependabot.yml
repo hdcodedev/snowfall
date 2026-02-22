@@ -9,7 +9,17 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      root-all-deps:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 1
   - package-ecosystem: "npm"
     directory: "/demo"
     schedule:
       interval: "weekly"
+    groups:
+      demo-all-deps:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 1
