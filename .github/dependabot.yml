@@ -13,6 +13,13 @@ updates:
       root-all-deps:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "eslint"
+        versions:
+          - ">=10 <11"
+      - dependency-name: "@eslint/js"
+        versions:
+          - ">=10 <11"
     open-pull-requests-limit: 1
   - package-ecosystem: "npm"
     directory: "/demo"
@@ -22,4 +29,8 @@ updates:
       demo-all-deps:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "eslint"
+        versions:
+          - ">=10 <11"
     open-pull-requests-limit: 1
