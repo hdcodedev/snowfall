@@ -159,30 +159,5 @@ const customPhysics = {
 };
 ```
 
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Build the library
-npm run build
-
-# Run in development mode
-npm run dev
-
-# Run the demo
-cd demo && npm run dev
-```
-
 ## License
-
-Copyright © 2025 hdcodedev.
-
-Licensed under the [Apache 2.0 License](LICENSE).
-
-## Contributing
-
-Contributions are welcome! If you like this project, please give it a star ⭐
-
-Found a bug or have a feature request? [Open an issue](https://github.com/hdcodedev/snowfall/issues) on GitHub.
+[MIT](LICENSE)
