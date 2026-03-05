@@ -12,14 +12,14 @@ export function useSnowfallCanvas() {
     // Initialize with safe default for SSR, actual value set in resizeCanvas
     const dprRef = useRef(1);
 
-    const resizeCanvas = useCallback(() => {
+    const resizeCanvas = useCallback((maxRenderDpr: number = Number.POSITIVE_INFINITY) => {
         if (canvasRef.current) {
             // Use viewport dimensions for fixed canvas
             const newWidth = window.innerWidth;
             const newHeight = window.innerHeight;
 
             // Handle high DPI displays - cache DPR in ref for use in animation loop
-            const dpr = window.devicePixelRatio || 1;
+            const dpr = Math.min(window.devicePixelRatio || 1, Math.max(1, maxRenderDpr));
             dprRef.current = dpr;
             canvasRef.current.width = newWidth * dpr;
             canvasRef.current.height = newHeight * dpr;

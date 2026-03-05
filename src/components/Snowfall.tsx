@@ -50,7 +50,10 @@ export default function Snowfall() {
 
     useEffect(() => {
         physicsConfigRef.current = physicsConfig;
-    }, [physicsConfig]);
+        if (isMounted) {
+            resizeCanvas(physicsConfig.MAX_RENDER_DPR);
+        }
+    }, [isMounted, physicsConfig, resizeCanvas]);
 
     useEffect(() => {
         setMetricsRef.current = setMetrics;
@@ -65,9 +68,11 @@ export default function Snowfall() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        resizeCanvas();
+        resizeCanvas(physicsConfigRef.current.MAX_RENDER_DPR);
 
         snowflakesRef.current = [];
+        let isUnmounted = false;
+        let scheduledInitFrame = 0;
 
         // Separate observer for snow accumulation surfaces
         const surfaceObserver = new ResizeObserver((entries) => {
@@ -80,12 +85,12 @@ export default function Snowfall() {
                 }
             }
             if (needsUpdate) {
-                // Re-run initialization to adapt to new sizes
-                initAccumulationWrapper();
+                scheduleAccumulationInit();
             }
         });
 
         const initAccumulationWrapper = () => {
+            if (isUnmounted) return;
             const scanStart = performance.now();
             initializeAccumulation(accumulationRef.current, physicsConfigRef.current);
 
@@ -99,30 +104,32 @@ export default function Snowfall() {
             // Mark rects dirty so they get recalculated on next frame
             markRectsDirty();
         };
+
+        const scheduleAccumulationInit = () => {
+            if (scheduledInitFrame !== 0 || isUnmounted) return;
+            scheduledInitFrame = requestAnimationFrame(() => {
+                scheduledInitFrame = 0;
+                initAccumulationWrapper();
+            });
+        };
         initAccumulationWrapper();
 
         // Delay visibility slightly to ensure smooth fade-in after canvas is ready
         requestAnimationFrame(() => {
-            if (isMounted) setIsVisible(true);
+            if (!isUnmounted && isMounted) setIsVisible(true);
         });
 
         // Start the animation loop
         startAnimation();
 
         const handleResize = () => {
-            resizeCanvas();
+            resizeCanvas(physicsConfigRef.current.MAX_RENDER_DPR);
             accumulationRef.current.clear();
             initAccumulationWrapper();
             markRectsDirty();
         };
 
         window.addEventListener('resize', handleResize);
-
-        // Observe window/body resize
-        const windowResizeObserver = new ResizeObserver(() => {
-            resizeCanvas();
-        });
-        windowResizeObserver.observe(document.body);
 
         // Observe DOM mutations to detect new/removed elements
         const mutationObserver = new MutationObserver((mutations) => {
@@ -135,10 +142,7 @@ export default function Snowfall() {
                 }
             }
             if (hasStructuralChange) {
-                const scanStart = performance.now();
-                initializeAccumulation(accumulationRef.current, physicsConfigRef.current);
-                metricsRef.current.scanTime = performance.now() - scanStart;
-                markRectsDirty();
+                scheduleAccumulationInit();
             }
         });
         mutationObserver.observe(document.body, {
@@ -147,9 +151,12 @@ export default function Snowfall() {
         });
 
         return () => {
+            isUnmounted = true;
+            if (scheduledInitFrame !== 0) {
+                cancelAnimationFrame(scheduledInitFrame);
+            }
             stopAnimation();
             window.removeEventListener('resize', handleResize);
-            windowResizeObserver.disconnect();
             mutationObserver.disconnect();
             surfaceObserver.disconnect();
         };

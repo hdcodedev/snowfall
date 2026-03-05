@@ -3,39 +3,54 @@ import { VAL_BOTTOM, TAU } from './constants';
 
 const ACC_FILL_STYLE = 'rgba(255, 255, 255, 0.95)';
 const ACC_SHADOW_COLOR = 'rgba(200, 230, 255, 0.6)';
+const OPACITY_BUCKETS = [0.3, 0.5, 0.7, 0.9];
 
 
-/**
- * Single-pass snowflake rendering for optimal cache locality.
- * Flakes are tracked in World Space.
- * The Canvas Context is translated by (-scrollX, -scrollY), effectively viewing the World.
- * 
- * PERFORMANCE: All glow/core values are pre-calculated at creation time (physics.ts),
- * enabling a simple single-pass render with excellent cache performance.
- */
 export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[]) => {
     if (flakes.length === 0) return;
 
     ctx.fillStyle = '#FFFFFF';
 
-    // Single pass: Draw glow (behind) then core (front) for each flake
-    for (const flake of flakes) {
-        // Draw glow effect first (behind the core) - skip for background flakes
-        if (!flake.isBackground) {
-            ctx.globalAlpha = flake.glowOpacity;
-            ctx.beginPath();
+    // Draw glow pass grouped by opacity to reduce state changes and fill calls.
+    for (const alpha of OPACITY_BUCKETS) {
+        let hasPath = false;
+
+        for (const flake of flakes) {
+            if (flake.isBackground || flake.glowOpacity !== alpha) continue;
+            if (!hasPath) {
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                hasPath = true;
+            }
+            ctx.moveTo(flake.x + flake.glowRadius, flake.y);
             ctx.arc(flake.x, flake.y, flake.glowRadius, 0, TAU);
-            ctx.fill();
         }
 
-        // Draw core on top
-        ctx.globalAlpha = flake.opacity;
-        ctx.beginPath();
-        ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
-        ctx.fill();
+        if (hasPath) {
+            ctx.fill();
+        }
     }
 
-    // Reset alpha once at the end
+    // Draw core pass grouped by opacity as well.
+    for (const alpha of OPACITY_BUCKETS) {
+        let hasPath = false;
+
+        for (const flake of flakes) {
+            if (flake.opacity !== alpha) continue;
+            if (!hasPath) {
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                hasPath = true;
+            }
+            ctx.moveTo(flake.x + flake.radius, flake.y);
+            ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
+        }
+
+        if (hasPath) {
+            ctx.fill();
+        }
+    }
+
     ctx.globalAlpha = 1.0;
 };
 
