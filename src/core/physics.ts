@@ -267,7 +267,6 @@ const updateSnowflakePosition = (flake: Snowflake, dt: number): void => {
  * Returns true if snowflake landed on a side.
  */
 const checkSideCollision = (
-    flake: Snowflake,
     flakeViewportX: number,
     flakeViewportY: number,
     rect: DOMRect,
@@ -425,7 +424,7 @@ export const updateSnowflakes = (
 
                 // Check side collisions (left/right edges)
                 if (!landed && !isBottom) {
-                    landed = checkSideCollision(flake, flakeViewportX, flakeViewportY, rect, acc, config);
+                    landed = checkSideCollision(flakeViewportX, flakeViewportY, rect, acc, config);
                     if (landed) break;
                 }
 

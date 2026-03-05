@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Snowflake, SnowAccumulation } from '../core/types';
 import { PhysicsConfig } from '../components/SnowfallProvider';
 import { getElementRects, ElementSurface } from '../core/dom';
@@ -37,9 +37,11 @@ interface UseAnimationLoopParams {
  */
 export function useAnimationLoop(params: UseAnimationLoopParams) {
     const animationIdRef = useRef<number>(0);
+    const animateRef = useRef<(currentTime: number) => void>(() => {});
     const lastTimeRef = useRef(0);
     const lastMetricsUpdateRef = useRef(0);
     const elementRectsRef = useRef<ElementSurface[]>([]);
+    const visibleRectsRef = useRef<ElementSurface[]>([]);
     // Dirty flag for rect updates - only recalculate when needed (resize, element changes)
     const dirtyRectsRef = useRef(true);
 
@@ -60,19 +62,19 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
         const canvas = canvasRef.current;
         if (!canvas) {
-            animationIdRef.current = requestAnimationFrame(animate);
+            animationIdRef.current = requestAnimationFrame(animateRef.current);
             return;
         }
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            animationIdRef.current = requestAnimationFrame(animate);
+            animationIdRef.current = requestAnimationFrame(animateRef.current);
             return;
         }
 
         if (lastTimeRef.current === 0) {
             lastTimeRef.current = currentTime;
-            animationIdRef.current = requestAnimationFrame(animate);
+            animationIdRef.current = requestAnimationFrame(animateRef.current);
             return;
         }
 
@@ -88,10 +90,10 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         lastTimeRef.current = currentTime;
         const dt = deltaTime / 16.67;
 
-        const frameStartTime = performance.now();
+        const frameStartTime = now;
 
         // Time canvas clear
-        const clearStart = performance.now();
+        const clearStart = now;
 
         // Reset transform to clear the entire viewport-sized canvas
         const dpr = dprRef.current;
@@ -119,13 +121,17 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         // Time physics
         const physicsStart = performance.now();
         meltAndSmoothAccumulation(elementRectsRef.current, physicsConfigRef.current, dt);
+        const docEl = document.documentElement;
+        const worldWidth = docEl.scrollWidth;
+        const worldHeight = docEl.scrollHeight;
+
         updateSnowflakes(
             snowflakes,
             elementRectsRef.current,
             physicsConfigRef.current,
             dt,
-            document.documentElement.scrollWidth,
-            document.documentElement.scrollHeight
+            worldWidth,
+            worldHeight
         );
         metricsRef.current.physicsTime = performance.now() - physicsStart;
 
@@ -135,14 +141,18 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
         // Spawn new snowflakes with adaptive rate based on performance
         if (isEnabledRef.current && snowflakes.length < physicsConfigRef.current.MAX_FLAKES) {
+            const minFlakeFloor = Math.min(80, physicsConfigRef.current.MAX_FLAKES);
+            const shouldForceSpawn = snowflakes.length < minFlakeFloor;
             const currentFps = getCurrentFps();
+            const isVisible = document.visibilityState === 'visible';
+            const isUnderFpsThreshold = isVisible && currentFps > 0 && currentFps < 40;
 
-            // Adaptive spawn rate: reduce load when FPS is low to prevent death spirals
-            const shouldSpawn = currentFps >= 40 || Math.random() < 0.2;
+            // Adaptive spawn rate: reduce load only when visible and actually under target FPS.
+            const shouldSpawn = shouldForceSpawn || !isUnderFpsThreshold || Math.random() < 0.2;
 
             if (shouldSpawn) {
                 const isBackground = Math.random() < 0.4;
-                snowflakes.push(createSnowflake(document.documentElement.scrollWidth, physicsConfigRef.current, isBackground));
+                snowflakes.push(createSnowflake(worldWidth, physicsConfigRef.current, isBackground));
             }
         }
 
@@ -150,10 +160,19 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         // Viewport culling: Filter to only visible elements before drawing
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        const visibleRects = elementRectsRef.current.filter(({ rect }) =>
-            rect.right >= 0 && rect.left <= viewportWidth &&
-            rect.bottom >= 0 && rect.top <= viewportHeight
-        );
+        const visibleRects = visibleRectsRef.current;
+        visibleRects.length = 0;
+        for (const item of elementRectsRef.current) {
+            const { rect } = item;
+            if (
+                rect.right >= 0 &&
+                rect.left <= viewportWidth &&
+                rect.bottom >= 0 &&
+                rect.top <= viewportHeight
+            ) {
+                visibleRects.push(item);
+            }
+        }
 
         // Only call draw functions if there are visible elements
         if (visibleRects.length > 0) {
@@ -174,14 +193,18 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             lastMetricsUpdateRef.current = currentTime;
         }
 
-        animationIdRef.current = requestAnimationFrame(animate);
+        animationIdRef.current = requestAnimationFrame(animateRef.current);
     }, [params]);
+
+    useEffect(() => {
+        animateRef.current = animate;
+    }, [animate]);
 
     const start = useCallback(() => {
         lastTimeRef.current = 0;
         lastMetricsUpdateRef.current = 0;
-        animationIdRef.current = requestAnimationFrame(animate);
-    }, [animate]);
+        animationIdRef.current = requestAnimationFrame(animateRef.current);
+    }, []);
 
     const stop = useCallback(() => {
         cancelAnimationFrame(animationIdRef.current);

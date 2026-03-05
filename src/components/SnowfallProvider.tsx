@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 export interface PhysicsConfig {
     MAX_FLAKES: number;
@@ -22,6 +22,10 @@ export interface PhysicsConfig {
     };
     MAX_SURFACES: number;
     COLLISION_CHECK_RATE: number;
+    /**
+     * Optional cap for render DPR. Lower values reduce GPU load on high-DPI displays.
+     */
+    MAX_RENDER_DPR?: number;
 }
 
 export const DEFAULT_PHYSICS: PhysicsConfig = {
@@ -43,7 +47,8 @@ export const DEFAULT_PHYSICS: PhysicsConfig = {
         MAX: 1.6,
     },
     MAX_SURFACES: 15,
-    COLLISION_CHECK_RATE: 0.3  // 30% of snowflakes check collisions per frame
+    COLLISION_CHECK_RATE: 0.3,  // 30% of snowflakes check collisions per frame
+    MAX_RENDER_DPR: 1.25,
 };
 
 export interface PerformanceMetrics {
