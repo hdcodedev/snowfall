@@ -46,6 +46,9 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
     const dirtyRectsRef = useRef(true);
     // Frame counter for deterministic collision distribution
     const frameIndexRef = useRef(0);
+    // Cached layout values — avoid reading scrollWidth/scrollHeight/innerWidth/innerHeight every frame
+    const worldSizeRef = useRef({ width: 0, height: 0 });
+    const viewportRef = useRef({ width: 0, height: 0 });
 
     const animate = useCallback((currentTime: number) => {
         const {
@@ -82,8 +85,7 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
         const deltaTime = Math.min(currentTime - lastTimeRef.current, 50);
 
-        // Two performance.now() calls per frame — derive all sub-timings from deltas.
-        // This eliminates ~8 timer calls per frame (~0.5ms/sec saved at 60fps).
+        // Single performance.now() at frame start — derive all sub-timings from deltas
         const frameStart = performance.now();
         updateFps(frameStart);
 
@@ -104,6 +106,13 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         const scrollY = window.scrollY;
         ctx.translate(-scrollX, -scrollY);
 
+        // Use cached viewport/document dimensions — only updated on resize via markRectsDirty.
+        // Reading scrollWidth/scrollHeight and innerWidth/innerHeight every frame causes layout thrashing.
+        const worldWidth = worldSizeRef.current.width;
+        const worldHeight = worldSizeRef.current.height;
+        const viewportWidth = viewportRef.current.width;
+        const viewportHeight = viewportRef.current.height;
+
         // Timing checkpoint: clear phase complete
         const clearEnd = performance.now();
         metricsRef.current.clearTime = clearEnd - frameStart;
@@ -113,18 +122,13 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         // Only update element rects when dirty (resize, element added/removed)
         // For fixed/sticky elements, getBoundingClientRect values don't change on scroll
         if (dirtyRectsRef.current) {
-            const rectStart = clearEnd;
             elementRectsRef.current = getElementRects(accumulationRef.current);
-            metricsRef.current.rectUpdateTime = performance.now() - rectStart;
+            metricsRef.current.rectUpdateTime = performance.now() - clearEnd;
             dirtyRectsRef.current = false;
         }
 
         // Physics
-        const physicsStart = performance.now();
         meltAndSmoothAccumulation(elementRectsRef.current, physicsConfigRef.current, dt, frameIndex);
-        const docEl = document.documentElement;
-        const worldWidth = docEl.scrollWidth;
-        const worldHeight = docEl.scrollHeight;
 
         updateSnowflakes(
             snowflakes,
@@ -138,7 +142,7 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             frameIndex
         );
         const physicsEnd = performance.now();
-        metricsRef.current.physicsTime = physicsEnd - physicsStart;
+        metricsRef.current.physicsTime = physicsEnd - clearEnd;
 
         // Draw Snowflakes (batched for performance)
         drawSnowflakes(ctx, snowflakes);
@@ -161,9 +165,7 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         }
 
         // Draw Accumulation
-        // Viewport culling: Filter to only visible elements before drawing
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+        // Viewport culling: Filter to only visible elements before drawing (uses cached viewport size)
         const visibleRects = visibleRectsRef.current;
         visibleRects.length = 0;
         for (const item of elementRectsRef.current) {
@@ -219,6 +221,11 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
     // Mark rects dirty - call on resize or when accumulation elements change
     const markRectsDirty = useCallback(() => {
         dirtyRectsRef.current = true;
+        // Also refresh cached layout values that cause layout thrashing when read every frame
+        worldSizeRef.current.width = document.documentElement.scrollWidth;
+        worldSizeRef.current.height = document.documentElement.scrollHeight;
+        viewportRef.current.width = window.innerWidth;
+        viewportRef.current.height = window.innerHeight;
     }, []);
 
     return {
