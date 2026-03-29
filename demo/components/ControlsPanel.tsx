@@ -102,6 +102,7 @@ export default function ControlsPanel() {
       {/* Toggle — visible on mobile, hidden on desktop */}
       <div className="fixed top-8 left-8 md:top-10 md:left-10 z-50 md:hidden">
           <button
+            data-snowfall="top"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle physics controls"
             className={`
@@ -134,7 +135,7 @@ export default function ControlsPanel() {
         className={`
           fixed z-40 transition-transform duration-300 ease-out
           ${isOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
-          bottom-0 left-0 right-0 md:top-0 md:left-0 md:bottom-0 md:w-64 md:right-auto
+          bottom-0 left-0 right-0 md:top-10 md:left-10 md:bottom-0 md:w-64 md:right-auto
         `}
       >
         <div className="

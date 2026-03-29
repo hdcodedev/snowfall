@@ -8,6 +8,7 @@ export default function ToggleButton() {
   return (
     <div className="fixed top-8 right-8 md:top-10 md:right-10 z-50">
       <button
+        data-snowfall="top"
         onClick={toggleSnow}
         aria-label={isEnabled ? 'Pause snowfall' : 'Resume snowfall'}
         className={`
