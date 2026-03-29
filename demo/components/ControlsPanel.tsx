@@ -1,7 +1,7 @@
 'use client';
 
 import { useSnowfall } from '@hdcodedev/snowfall';
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 
 function Slider({
   label,
@@ -20,23 +20,27 @@ function Slider({
   unit?: string;
   onChange: (value: number) => void;
 }) {
+  const reactId = useId();
+  const id = `slider-${label.toLowerCase().replace(/\s+/g, '-')}-${reactId}`;
   return (
     <div className="group">
       <div className="flex items-baseline justify-between mb-2">
-        <label className="font-body text-xs text-frost-muted tracking-wide">
+        <label htmlFor={id} className="font-body text-xs text-frost-muted tracking-wide">
           {label}
         </label>
-        <span className="font-body text-xs text-champagne tabular-nums">
-          {typeof step === 'number' && step < 1 ? value.toFixed(1) : Math.round(value)}
+        <span className="font-body text-xs text-champagne tabular-nums" aria-hidden="true">
+          {step < 1 ? value.toFixed(1) : Math.round(value)}
           {unit}
         </span>
       </div>
       <input
+        id={id}
         type="range"
         min={min}
         max={max}
         step={step}
         value={value}
+        aria-label={label}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="w-full"
       />
@@ -59,6 +63,7 @@ function Section({
     <div className="border-b border-pearl-dim/30 last:border-b-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
         className="w-full flex items-center justify-between py-3 group"
       >
         <span className="font-body text-xs uppercase tracking-[0.2em] text-frost-muted group-hover:text-frost transition-colors">
@@ -88,18 +93,18 @@ export default function ControlsPanel() {
     <>
       {/* Toggle — visible on mobile, hidden on desktop (sidebar always visible on md+) */}
       <div className="fixed top-6 left-6 md:top-8 md:left-8 z-50 md:hidden">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle physics controls"
-          className={`
-            w-10 h-10 flex items-center justify-center
-            border rounded-sm backdrop-blur-sm transition-all duration-300
-            ${isOpen
-              ? 'border-champagne/40 bg-champagne/5'
-              : 'border-pearl-dim bg-surface/50 hover:bg-surface'
-            }
-          `}
-        >
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle physics controls"
+            className={`
+              w-11 h-11 flex items-center justify-center
+              border rounded-sm backdrop-blur-sm transition-all duration-300
+              ${isOpen
+                ? 'border-champagne/40 bg-champagne/5'
+                : 'border-pearl-dim bg-surface/50 hover:bg-surface'
+              }
+            `}
+          >
           <svg
             className={`w-4 h-4 transition-all duration-200 ${
               isOpen ? 'text-champagne rotate-90' : 'text-frost-dim'

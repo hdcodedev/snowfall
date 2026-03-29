@@ -11,7 +11,7 @@ export default function ToggleButton() {
         onClick={toggleSnow}
         aria-label={isEnabled ? 'Pause snowfall' : 'Resume snowfall'}
         className={`
-          group relative w-10 h-10 flex items-center justify-center
+          group relative w-11 h-11 flex items-center justify-center
           border rounded-sm backdrop-blur-sm
           transition-all duration-300
           ${isEnabled
