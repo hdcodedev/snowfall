@@ -1,19 +1,18 @@
 import { PhysicsConfig } from '../components/SnowfallProvider';
-import { Snowflake, SnowAccumulation, ElementSurface } from './types';
+import { Snowflake, SnowAccumulation, SnowfallSurface, ElementSurface } from './types';
 import { getAccumulationSurfaces } from './dom';
 import { VAL_BOTTOM, TAU } from './constants';
 
-// Opacity buckets for batched rendering (reduce globalAlpha state changes)
-const OPACITY_BUCKETS = [0.3, 0.5, 0.7, 0.9];
-
+// Quantize opacity to nearest bucket for efficient batching during draw
 /**
  * Quantize opacity to nearest bucket for efficient batching during draw.
- * This eliminates runtime bucketing overhead by snapping at creation time.
+ * Uses threshold comparisons instead of Array.reduce to avoid callback overhead.
  */
 const quantizeOpacity = (opacity: number): number => {
-    return OPACITY_BUCKETS.reduce((prev, curr) =>
-        Math.abs(curr - opacity) < Math.abs(prev - opacity) ? curr : prev
-    );
+    if (opacity < 0.4) return 0.3;
+    if (opacity < 0.6) return 0.5;
+    if (opacity < 0.8) return 0.7;
+    return 0.9;
 };
 
 export const createSnowflake = (
@@ -178,30 +177,42 @@ export const initializeAccumulation = (
         }
     }
 
-    elements.forEach(({ el, type }) => {
-        const existing = accumulationMap.get(el);
-        const rect = el.getBoundingClientRect();
+    // Batch all DOM reads BEFORE any writes to avoid layout thrashing.
+    // getBoundingClientRect forces layout; getComputedStyle forces style recalc.
+    // Interleaving them per-element causes N layout recalculations.
+    // Batching gives us 1 layout + 1 style recalc total.
+    const reads: { el: Element; type: SnowfallSurface; rect: DOMRect; styles: CSSStyleDeclaration; existing: SnowAccumulation | undefined }[] = [];
+    for (const { el, type } of elements) {
+        reads.push({
+            el,
+            type,
+            rect: el.getBoundingClientRect(),
+            styles: window.getComputedStyle(el),
+            existing: accumulationMap.get(el),
+        });
+    }
+
+    // Now do all writes using the batched reads
+    for (const { el, type, rect, styles, existing } of reads) {
         const width = Math.ceil(rect.width);
         const isBottom = type === VAL_BOTTOM;
 
         if (existing && existing.heights.length === width) {
             existing.type = type;
             if (existing.borderRadius !== undefined) {
-                const styleBuffer = window.getComputedStyle(el);
-                existing.borderRadius = parseFloat(styleBuffer.borderTopLeftRadius) || 0;
+                existing.borderRadius = parseFloat(styles.borderTopLeftRadius) || 0;
                 existing.curveOffsets = calculateCurveOffsets(width, existing.borderRadius, isBottom);
                 // Initialize gravity multipliers if height matches but they're missing
                 if (existing.leftSide.length === Math.ceil(rect.height) && !existing.sideGravityMultipliers) {
                     existing.sideGravityMultipliers = calculateGravityMultipliers(existing.leftSide.length);
                 }
             }
-            return;
+            continue;
         }
 
         const height = Math.ceil(rect.height);
         const baseMax = isBottom ? config.MAX_DEPTH.BOTTOM : config.MAX_DEPTH.TOP;
 
-        const styles = window.getComputedStyle(el);
         const borderRadius = parseFloat(styles.borderTopLeftRadius) || 0;
 
         const maxHeights = initializeMaxHeights(width, baseMax, borderRadius, isBottom);
@@ -221,7 +232,7 @@ export const initializeAccumulation = (
             type,
             _smoothTemp: existing?._smoothTemp || [],
         });
-    });
+    }
 };
 
 /**

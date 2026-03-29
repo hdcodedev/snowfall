@@ -176,7 +176,7 @@ export default function Snowfall() {
                     zIndex: 9999,
                     opacity: isVisible ? 1 : 0,
                     transition: 'opacity 0.3s ease-in',
-                    willChange: 'transform',
+                    willChange: 'opacity',
                 }}
                 aria-hidden="true"
             />
