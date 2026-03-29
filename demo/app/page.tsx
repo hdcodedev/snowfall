@@ -174,10 +174,10 @@ export default function Home() {
           <StatBlock value="0" label="Dependencies" />
           <div className="w-px h-10 bg-thin-ice hidden md:block" />
           <div className="hidden md:block">
-            <StatBlock value="2" label="Lines to Start" />
+            <StatBlock value="2" label="Lines to Add" />
           </div>
           <div className="w-px h-10 bg-thin-ice" />
-          <StatBlock value="∞" label="Snowflakes" />
+            <StatBlock value="1000+" label="Flakes Default" />
         </div>
       </section>
 
@@ -272,10 +272,10 @@ export default function Home() {
                 </p>
               </div>
               <h3 className="font-display text-2xl md:text-3xl font-light text-frost mb-3">
-                Bottom Edge
+                Bottom of Header
               </h3>
               <p className="font-body text-sm font-light text-frost-muted leading-relaxed">
-                Snow accumulates on the underside — as if drifting beneath an overhang.
+                Snow clings to the underside — as if drifting beneath an overhang.
               </p>
             </header>
 
@@ -291,10 +291,10 @@ export default function Home() {
                 </p>
               </div>
               <h3 className="font-display text-2xl md:text-3xl font-light text-frost mb-3">
-                Top Edge
+                Top of Footer
               </h3>
               <p className="font-body text-sm font-light text-frost-muted leading-relaxed">
-                Natural piling — snow settles on horizontal surfaces and stacks upward.
+                Snow settles on horizontal surfaces and stacks upward naturally.
               </p>
             </footer>
 
@@ -315,7 +315,7 @@ export default function Home() {
                     Any Element
                   </h3>
                   <p className="font-body text-sm font-light text-frost-muted leading-relaxed max-w-md">
-                    Add <code className="text-glacier text-xs">data-snowfall=&quot;top&quot;</code> or <code className="text-glacier text-xs">&quot;bottom&quot;</code> to any element. The library handles the rest.
+                    Add <code className="text-glacier text-xs">data-snowfall=&quot;top&quot;</code> or <code className="text-glacier text-xs">&quot;bottom&quot;</code> to any element. Snow accumulates automatically.
                   </p>
                 </div>
 
@@ -349,7 +349,7 @@ export default function Home() {
               Get Started
             </p>
             <h2 className="font-display text-5xl md:text-7xl font-light text-frost leading-[0.9]">
-              Three lines.
+              Three lines to start.
             </h2>
           </div>
 

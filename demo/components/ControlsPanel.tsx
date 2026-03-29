@@ -140,21 +140,21 @@ export default function ControlsPanel() {
           {/* Header */}
           <div className="sticky top-0 bg-abyss/95 md:bg-abyss/80 backdrop-blur-xl border-b border-thin-ice/30 px-6 py-4 flex items-center justify-between">
             <h3 className="font-body text-[10px] uppercase tracking-[0.25em] text-frost-muted">
-              Physics
+              Snow Settings
             </h3>
             <button
               onClick={resetPhysics}
               className="font-body text-[10px] uppercase tracking-[0.15em] text-frost-dim hover:text-glacier transition-colors duration-200"
             >
-              Reset
+              Restore Defaults
             </button>
           </div>
 
           <div className="px-6 py-2">
             {/* Flakes */}
-            <Section title="Flakes" defaultOpen>
+            <Section title="Snowflakes" defaultOpen>
               <Slider
-                label="Count"
+                label="Max Count"
                 value={physicsConfig.MAX_FLAKES}
                 min={0}
                 max={1500}
@@ -162,7 +162,7 @@ export default function ControlsPanel() {
                 onChange={(v) => updatePhysicsConfig({ MAX_FLAKES: v })}
               />
               <Slider
-                label="Min Size"
+                label="Smallest Flake"
                 value={physicsConfig.FLAKE_SIZE.MIN}
                 min={0.1}
                 max={3}
@@ -174,7 +174,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Max Size"
+                label="Largest Flake"
                 value={physicsConfig.FLAKE_SIZE.MAX}
                 min={0.1}
                 max={5}
@@ -190,7 +190,7 @@ export default function ControlsPanel() {
             {/* Environment */}
             <Section title="Environment" defaultOpen>
               <Slider
-                label="Wind"
+                label="Wind Strength"
                 value={physicsConfig.WIND_STRENGTH}
                 min={0}
                 max={3}
@@ -198,7 +198,7 @@ export default function ControlsPanel() {
                 onChange={(v) => updatePhysicsConfig({ WIND_STRENGTH: v })}
               />
               <Slider
-                label="Melt Speed"
+                label="Melting Speed"
                 value={physicsConfig.MELT_SPEED * 10000}
                 min={0}
                 max={10}
@@ -207,7 +207,7 @@ export default function ControlsPanel() {
                 onChange={(v) => updatePhysicsConfig({ MELT_SPEED: v / 10000 })}
               />
               <Slider
-                label="Surfaces"
+                label="Max Surfaces"
                 value={physicsConfig.MAX_SURFACES}
                 min={0}
                 max={50}
@@ -219,7 +219,7 @@ export default function ControlsPanel() {
             {/* Accumulation */}
             <Section title="Accumulation">
               <Slider
-                label="Top Rate"
+                label="Top Surfaces"
                 value={physicsConfig.ACCUMULATION.TOP_RATE}
                 min={0}
                 max={10}
@@ -231,7 +231,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Bottom Rate"
+                label="Bottom Surfaces"
                 value={physicsConfig.ACCUMULATION.BOTTOM_RATE}
                 min={0}
                 max={10}
@@ -243,7 +243,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Side Rate"
+                label="Side Surfaces"
                 value={physicsConfig.ACCUMULATION.SIDE_RATE}
                 min={0}
                 max={5}
@@ -257,9 +257,9 @@ export default function ControlsPanel() {
             </Section>
 
             {/* Depth */}
-            <Section title="Max Depth">
+            <Section title="Snow Depth">
               <Slider
-                label="Top"
+                label="Top Surfaces"
                 value={physicsConfig.MAX_DEPTH.TOP}
                 min={0}
                 max={150}
@@ -272,7 +272,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Bottom"
+                label="Bottom Surfaces"
                 value={physicsConfig.MAX_DEPTH.BOTTOM}
                 min={0}
                 max={100}
@@ -285,7 +285,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Side"
+                label="Side Surfaces"
                 value={physicsConfig.MAX_DEPTH.SIDE}
                 min={0}
                 max={40}
