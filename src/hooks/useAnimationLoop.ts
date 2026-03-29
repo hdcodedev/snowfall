@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { Snowflake, SnowAccumulation } from '../core/types';
-import { PhysicsConfig } from '../components/SnowfallProvider';
+import { PhysicsConfig, PerformanceMetrics } from '../components/SnowfallProvider';
 import { getElementRects, ElementSurface } from '../core/dom';
 import { createSnowflake, meltAndSmoothAccumulation, updateSnowflakes } from '../core/physics';
 import { drawAccumulations, drawSideAccumulations, drawSnowflakes } from '../core/draw';
@@ -27,8 +27,8 @@ interface UseAnimationLoopParams {
     };
     updateFps: (now: number) => void;
     getCurrentFps: () => number;
-    buildMetrics: (surfaceCount: number, flakeCount: number, maxFlakes: number) => any;
-    setMetricsRef: { current: (metrics: any) => void };
+    buildMetrics: (surfaceCount: number, flakeCount: number, maxFlakes: number) => PerformanceMetrics;
+    setMetricsRef: { current: (metrics: PerformanceMetrics) => void };
 }
 
 /**
@@ -44,6 +44,13 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
     const visibleRectsRef = useRef<ElementSurface[]>([]);
     // Dirty flag for rect updates - only recalculate when needed (resize, element changes)
     const dirtyRectsRef = useRef(true);
+    // Frame counter for deterministic collision distribution
+    const frameIndexRef = useRef(0);
+    // Cached layout values — avoid reading scrollWidth/scrollHeight/innerWidth/innerHeight every frame
+    const worldSizeRef = useRef({ width: 0, height: 0 });
+    const viewportRef = useRef({ width: 0, height: 0 });
+    // Cache 2D context — getContext('2d') is a DOM API call with overhead
+    const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
     const animate = useCallback((currentTime: number) => {
         const {
@@ -66,11 +73,13 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             return;
         }
 
-        const ctx = canvas.getContext('2d');
+        // Use cached 2D context — getContext('2d') is a DOM call with measurable overhead
+        const ctx = ctxRef.current || canvas.getContext('2d');
         if (!ctx) {
             animationIdRef.current = requestAnimationFrame(animateRef.current);
             return;
         }
+        if (!ctxRef.current) ctxRef.current = ctx;
 
         if (lastTimeRef.current === 0) {
             lastTimeRef.current = currentTime;
@@ -80,20 +89,16 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
         const deltaTime = Math.min(currentTime - lastTimeRef.current, 50);
 
-        // Track FPS using second-bucket approach (zero allocations per frame)
-        const now = performance.now();
-        updateFps(now);
+        // Single performance.now() at frame start — derive all sub-timings from deltas
+        const frameStart = performance.now();
+        updateFps(frameStart);
 
         // Track detailed performance metrics
         metricsRef.current.rafGap = currentTime - lastTimeRef.current;
 
         lastTimeRef.current = currentTime;
         const dt = deltaTime / 16.67;
-
-        const frameStartTime = now;
-
-        // Time canvas clear
-        const clearStart = now;
+        const frameIndex = frameIndexRef.current++;
 
         // Reset transform to clear the entire viewport-sized canvas
         const dpr = dprRef.current;
@@ -105,25 +110,29 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         const scrollY = window.scrollY;
         ctx.translate(-scrollX, -scrollY);
 
-        metricsRef.current.clearTime = performance.now() - clearStart;
+        // Use cached viewport/document dimensions — only updated on resize via markRectsDirty.
+        // Reading scrollWidth/scrollHeight and innerWidth/innerHeight every frame causes layout thrashing.
+        const worldWidth = worldSizeRef.current.width;
+        const worldHeight = worldSizeRef.current.height;
+        const viewportWidth = viewportRef.current.width;
+        const viewportHeight = viewportRef.current.height;
+
+        // Timing checkpoint: clear phase complete
+        const clearEnd = performance.now();
+        metricsRef.current.clearTime = clearEnd - frameStart;
 
         const snowflakes = snowflakesRef.current;
 
         // Only update element rects when dirty (resize, element added/removed)
         // For fixed/sticky elements, getBoundingClientRect values don't change on scroll
         if (dirtyRectsRef.current) {
-            const rectStart = performance.now();
             elementRectsRef.current = getElementRects(accumulationRef.current);
-            metricsRef.current.rectUpdateTime = performance.now() - rectStart;
+            metricsRef.current.rectUpdateTime = performance.now() - clearEnd;
             dirtyRectsRef.current = false;
         }
 
-        // Time physics
-        const physicsStart = performance.now();
-        meltAndSmoothAccumulation(elementRectsRef.current, physicsConfigRef.current, dt);
-        const docEl = document.documentElement;
-        const worldWidth = docEl.scrollWidth;
-        const worldHeight = docEl.scrollHeight;
+        // Physics
+        meltAndSmoothAccumulation(elementRectsRef.current, physicsConfigRef.current, dt, frameIndex);
 
         updateSnowflakes(
             snowflakes,
@@ -131,12 +140,15 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             physicsConfigRef.current,
             dt,
             worldWidth,
-            worldHeight
+            worldHeight,
+            scrollX,
+            scrollY,
+            frameIndex
         );
-        metricsRef.current.physicsTime = performance.now() - physicsStart;
+        const physicsEnd = performance.now();
+        metricsRef.current.physicsTime = physicsEnd - clearEnd;
 
         // Draw Snowflakes (batched for performance)
-        const drawStart = performance.now();
         drawSnowflakes(ctx, snowflakes);
 
         // Spawn new snowflakes with adaptive rate based on performance
@@ -157,9 +169,7 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         }
 
         // Draw Accumulation
-        // Viewport culling: Filter to only visible elements before drawing
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+        // Viewport culling: Filter to only visible elements before drawing (uses cached viewport size)
         const visibleRects = visibleRectsRef.current;
         visibleRects.length = 0;
         for (const item of elementRectsRef.current) {
@@ -180,8 +190,10 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             drawSideAccumulations(ctx, visibleRects, scrollX, scrollY);
         }
 
-        metricsRef.current.drawTime = performance.now() - drawStart;
-        metricsRef.current.frameTime = performance.now() - frameStartTime;
+        // Single performance.now() at frame end — derive drawTime from total minus prior phases
+        const frameEnd = performance.now();
+        metricsRef.current.drawTime = frameEnd - physicsEnd;
+        metricsRef.current.frameTime = frameEnd - frameStart;
 
         // Update metrics every 500ms
         if (currentTime - lastMetricsUpdateRef.current > 500) {
@@ -213,6 +225,11 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
     // Mark rects dirty - call on resize or when accumulation elements change
     const markRectsDirty = useCallback(() => {
         dirtyRectsRef.current = true;
+        // Also refresh cached layout values that cause layout thrashing when read every frame
+        worldSizeRef.current.width = document.documentElement.scrollWidth;
+        worldSizeRef.current.height = document.documentElement.scrollHeight;
+        viewportRef.current.width = window.innerWidth;
+        viewportRef.current.height = window.innerHeight;
     }, []);
 
     return {
