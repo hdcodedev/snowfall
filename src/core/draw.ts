@@ -3,58 +3,22 @@ import { VAL_BOTTOM, TAU } from './constants';
 
 const ACC_FILL_STYLE = 'rgba(255, 255, 255, 0.95)';
 const ACC_SHADOW_FILL = 'rgba(200, 220, 245, 0.3)';
-const OPACITY_BUCKETS = [0.3, 0.5, 0.7, 0.9];
 
 
 export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[]) => {
     if (flakes.length === 0) return;
 
+    ctx.globalAlpha = 1.0;
     ctx.fillStyle = '#FFFFFF';
-
-    // Single-pass bucket sort: O(N) instead of O(8N) for 4 glow + 4 core buckets.
-    // Reduces per-flake work from 8 comparisons to 2 assignments.
-    const glowBuckets: Record<number, Snowflake[]> = { 0.3: [], 0.5: [], 0.7: [], 0.9: [] };
-    const coreBuckets: Record<number, Snowflake[]> = { 0.3: [], 0.5: [], 0.7: [], 0.9: [] };
+    ctx.beginPath();
 
     for (let i = 0, len = flakes.length; i < len; i++) {
         const flake = flakes[i];
-        coreBuckets[flake.opacity].push(flake);
-        if (!flake.isBackground) {
-            glowBuckets[flake.glowOpacity].push(flake);
-        }
+        ctx.moveTo(flake.x + flake.radius, flake.y);
+        ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
     }
 
-    // Draw glow pass — grouped by opacity to minimize globalAlpha state changes
-    for (const alpha of OPACITY_BUCKETS) {
-        const bucket = glowBuckets[alpha];
-        if (bucket.length === 0) continue;
-
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        for (let i = 0, len = bucket.length; i < len; i++) {
-            const flake = bucket[i];
-            ctx.moveTo(flake.x + flake.glowRadius, flake.y);
-            ctx.arc(flake.x, flake.y, flake.glowRadius, 0, TAU);
-        }
-        ctx.fill();
-    }
-
-    // Draw core pass — same batching strategy
-    for (const alpha of OPACITY_BUCKETS) {
-        const bucket = coreBuckets[alpha];
-        if (bucket.length === 0) continue;
-
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        for (let i = 0, len = bucket.length; i < len; i++) {
-            const flake = bucket[i];
-            ctx.moveTo(flake.x + flake.radius, flake.y);
-            ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
-        }
-        ctx.fill();
-    }
-
-    ctx.globalAlpha = 1.0;
+    ctx.fill();
 };
 
 export const drawAccumulations = (

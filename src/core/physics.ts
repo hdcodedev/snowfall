@@ -3,18 +3,6 @@ import { Snowflake, SnowAccumulation, SnowfallSurface, ElementSurface } from './
 import { getAccumulationSurfaces } from './dom';
 import { VAL_BOTTOM, TAU } from './constants';
 
-// Quantize opacity to nearest bucket for efficient batching during draw
-/**
- * Quantize opacity to nearest bucket for efficient batching during draw.
- * Uses threshold comparisons instead of Array.reduce to avoid callback overhead.
- */
-const quantizeOpacity = (opacity: number): number => {
-    if (opacity < 0.4) return 0.3;
-    if (opacity < 0.6) return 0.5;
-    if (opacity < 0.8) return 0.7;
-    return 0.9;
-};
-
 export const createSnowflake = (
     worldWidth: number,
     config: PhysicsConfig,
@@ -46,8 +34,6 @@ export const createSnowflake = (
             speedScale: 0.3,
             noiseSpeedScale: 0.2,
             windScale: config.WIND_STRENGTH * 0.625,
-            opacityBase: 0.2,
-            opacityScale: 0.2,
             wobbleBase: 0.005,
             wobbleScale: 0.015
         }
@@ -58,37 +44,22 @@ export const createSnowflake = (
             speedScale: 0.5,
             noiseSpeedScale: 0.3,
             windScale: config.WIND_STRENGTH,
-            opacityBase: 0.5,
-            opacityScale: 0.3,
             wobbleBase: 0.01,
             wobbleScale: 0.02
         };
 
     const radius = profile.sizeMin + sizeRatio * profile.sizeRange;
-    const glowRadius = radius * 1.5;
-
-    // Calculate opacity and quantize to bucket for efficient batched rendering
-    const rawOpacity = profile.opacityBase + sizeRatio * profile.opacityScale;
-    const opacity = quantizeOpacity(rawOpacity);
-
-    // Pre-calculate glow opacity (also quantized for batching)
-    const rawGlowOpacity = opacity * 0.2;
-    const glowOpacity = quantizeOpacity(rawGlowOpacity);
-
     const initialWobble = noise.wobblePhase * TAU;
 
     return {
         x: x,
         y: window.scrollY - 5,
         radius: radius,
-        glowRadius: glowRadius,
         speed:
             radius * profile.speedScale +
             noise.speed * profile.noiseSpeedScale +
             profile.speedBase,
         wind: (noise.wind - 0.5) * profile.windScale,
-        opacity: opacity,
-        glowOpacity: glowOpacity,
         wobble: initialWobble,
         wobbleSpeed: noise.wobbleSpeed * profile.wobbleScale + profile.wobbleBase,
         sizeRatio: sizeRatio,

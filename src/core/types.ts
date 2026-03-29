@@ -2,11 +2,8 @@ export interface Snowflake {
     x: number;
     y: number;
     radius: number;
-    glowRadius: number;
     speed: number;
     wind: number;
-    opacity: number;
-    glowOpacity: number;
     wobble: number;
     wobbleSpeed: number;
     sizeRatio: number;
