@@ -400,14 +400,13 @@ export const updateSnowflakes = (
     dt: number,
     worldWidth: number,
     worldHeight: number,
+    scrollX: number,
+    scrollY: number,
     frameIndex: number = 0
 ) => {
-    // Scroll used for World -> Viewport mapping for collision
-    // Flakes are in World Space.
-    // DOM Rects are in Viewport Space (relative to the window).
-    // To check collision, we subtract scrollX/Y from Flake coordinates to get their Viewport position.
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
+    // Scroll used for World -> Viewport mapping for collision.
+    // Flakes are in World Space, DOM Rects are in Viewport Space.
+    // Passed from animation loop which already reads these values.
 
     // Deterministic collision check: spread checks across frames instead of Math.random().
     // Each frame, only flakes whose index matches (frameIndex % divisor) check collisions.
@@ -498,7 +497,7 @@ export const meltAndSmoothAccumulation = (
 
         // Melt
         let newMaxHeight = 0;
-        for (let i = 0; i < acc.heights.length; i++) {
+        for (let i = 0; i < len; i++) {
             if (acc.heights[i] > 0) {
                 acc.heights[i] -= meltRate;
             }

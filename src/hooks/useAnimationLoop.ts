@@ -133,6 +133,8 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             dt,
             worldWidth,
             worldHeight,
+            scrollX,
+            scrollY,
             frameIndex
         );
         const physicsEnd = performance.now();
