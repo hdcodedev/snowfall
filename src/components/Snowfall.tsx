@@ -65,9 +65,6 @@ export default function Snowfall() {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
         resizeCanvas(physicsConfigRef.current.MAX_RENDER_DPR);
 
         snowflakesRef.current = [];
@@ -124,8 +121,8 @@ export default function Snowfall() {
 
         const handleResize = () => {
             resizeCanvas(physicsConfigRef.current.MAX_RENDER_DPR);
-            accumulationRef.current.clear();
-            initAccumulationWrapper();
+            // Just mark rects dirty to recalculate — don't clear accumulation or re-scan DOM.
+            // The accumulation data is still valid after resize, only element positions changed.
             markRectsDirty();
         };
 
@@ -165,22 +162,19 @@ export default function Snowfall() {
     if (!isMounted) return null;
 
     return (
-        <>
-            <canvas
-                ref={canvasRef}
-                style={{
-                    position: 'fixed', // FIXED position to eliminate scroll jitter
-                    top: 0,
-                    left: 0,
-                    pointerEvents: 'none',
-                    zIndex: 9999,
-                    opacity: isVisible ? 1 : 0,
-                    transition: 'opacity 0.3s ease-in',
-                    willChange: 'transform',
-                }}
-                aria-hidden="true"
-            />
-
-        </>
+        <canvas
+            ref={canvasRef}
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                pointerEvents: 'none',
+                zIndex: 9999,
+                opacity: isVisible ? 1 : 0,
+                transition: isVisible ? undefined : 'opacity 0.3s ease-in',
+                willChange: isVisible ? undefined : 'opacity',
+            }}
+            aria-hidden="true"
+        />
     );
 }

@@ -34,7 +34,7 @@ yarn add @hdcodedev/snowfall
 
 ## Quick Start
 
-Snowfall automatically detects semantic tags (like `<header>`) and styled elements. You can also force accumulation manually.
+Snowfall automatically detects HTML elements like `<header>` and `<footer>` and accumulates snow on their edges. You can also mark any element manually.
 
 ### Basic Usage
 
@@ -72,17 +72,15 @@ export default function App() {
 
 ### Surface Types
 
-- **`data-snowfall="top"`** (default for most elements): Snow accumulates on the top edge, piling downward
-- **`data-snowfall="bottom"`** (default for `<header>` tags): Snow accumulates on the bottom edge
-- **`data-snowfall="ignore"`**: Prevents snow accumulation on the element
+Use the `data-snowfall` attribute to control where snow accumulates on an element:
 
-By default:
-- `<header>` and `role="banner"` → Bottom accumulation
-- `<footer>` and other elements → Top accumulation (natural piling)
+- **`data-snowfall="top"`** — Snow piles up on the top edge (default for `<footer>` and most elements)
+- **`data-snowfall="bottom"`** — Snow hangs from the bottom edge (default for `<header>` and `role="banner"`)
+- **`data-snowfall="ignore"`** — No snow accumulates on this element
 
 ## Customization
 
-You can customize physics via the `SnowfallProvider`:
+You can customize how snow behaves via the `SnowfallProvider`:
 
 ```tsx
 import { SnowfallProvider, DEFAULT_PHYSICS } from '@hdcodedev/snowfall';
@@ -113,30 +111,30 @@ const customPhysics = {
 
 ### `<SnowfallProvider>`
 
-Wraps your app to provide snowfall context.
+Wraps your app to manage snowfall state. Place it at the root of your component tree.
 
 ### `<Snowfall />`
 
-The main snowfall canvas component. Must be used within `SnowfallProvider`.
+Renders the snowfall canvas. Must be placed inside `SnowfallProvider`. Snow accumulates on detected elements automatically.
 
 ### `useSnowfall()`
 
-Hook to access snowfall controls. Must be used within `SnowfallProvider`.
+Hook to control snowfall at runtime. Must be used inside `SnowfallProvider`.
 
 **Returns:**
 ```typescript
 {
-  isEnabled: boolean;                           // Current enabled state
-  toggleSnow: () => void;                       // Function to toggle snow on/off
-  physicsConfig: PhysicsConfig;                 // Current physics configuration
-  updatePhysicsConfig: (config: Partial<PhysicsConfig>) => void;  // Update physics
-  resetPhysics: () => void;                     // Reset to default physics
+  isEnabled: boolean;                           // Whether snow is currently falling
+  toggleSnow: () => void;                       // Start or stop the snowfall
+  physicsConfig: PhysicsConfig;                 // Current snow behavior settings
+  updatePhysicsConfig: (config: Partial<PhysicsConfig>) => void;  // Change settings at runtime
+  resetPhysics: () => void;                     // Restore default settings
 }
 ```
 
 ## Tips
 
-- The snowfall canvas has `pointer-events: none`, so it won't interfere with user interactions
+- Snow is drawn on a transparent layer that doesn't block clicks, scrolling, or other interactions
 - Snow accumulation works best on static or slowly-changing layouts
 - The component uses `'use client'` directive for Next.js 13+ App Router compatibility
 
@@ -144,18 +142,18 @@ Hook to access snowfall controls. Must be used within `SnowfallProvider`.
 
 Key optimizations for smooth 60 FPS performance:
 
-- **Probabilistic Collision Detection**: Only 30% of snowflakes check collisions per frame (configurable via `COLLISION_CHECK_RATE`), significantly reducing CPU load while maintaining visual quality
-- **Adaptive Spawn Rate**: Automatically reduces snowflake spawning when FPS drops below 40 to prevent performance degradation
-- **Viewport Culling**: Only renders accumulation for visible elements
-- **Zero-allocation FPS Tracking**: Uses a second-bucket approach to eliminate per-frame memory allocations
+- **Smart Collision Checks**: Only 30% of snowflakes check for collisions each frame (configurable via `COLLISION_CHECK_RATE`), reducing CPU load while maintaining visual quality
+- **Adaptive Spawn Rate**: Automatically reduces snowflake count when FPS drops below 40
+- **Offscreen Skipping**: Only processes accumulation for elements visible in the viewport
+- **Efficient FPS Tracking**: Uses a second-bucket approach to avoid per-frame memory allocations
 
-**Tuning for lower-end devices:**
+**For slower devices, reduce the load:**
 ```tsx
 const customPhysics = {
   ...DEFAULT_PHYSICS,
-  MAX_FLAKES: 200,
-  COLLISION_CHECK_RATE: 0.1,
-  MAX_SURFACES: 15,
+  MAX_FLAKES: 200,             // Fewer snowflakes
+  COLLISION_CHECK_RATE: 0.1,   // Check fewer flakes per frame
+  MAX_SURFACES: 15,            // Fewer surfaces to track
 };
 ```
 
