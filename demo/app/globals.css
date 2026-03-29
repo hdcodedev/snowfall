@@ -3,27 +3,46 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --color-midnight: oklch(0.11 0.02 250);
-  --color-abyss: oklch(0.08 0.02 250);
-  --color-surface: oklch(0.15 0.03 250);
-  --color-elevated: oklch(0.20 0.03 250);
-  --color-frost: oklch(0.93 0.01 250);
-  --color-frost-muted: oklch(0.62 0.02 250);
-  --color-frost-dim: oklch(0.45 0.02 250);
-  --color-champagne: oklch(0.78 0.08 85);
-  --color-champagne-dim: oklch(0.65 0.06 85);
-  --color-ice: oklch(0.72 0.06 230);
-  --color-ice-dim: oklch(0.55 0.04 230);
-  --color-pearl: oklch(0.88 0.02 250);
-  --color-pearl-dim: oklch(0.30 0.02 250);
+  /* ── Glacial Palette ── */
+  --color-twilight: oklch(0.07 0.015 265);
+  --color-abyss: oklch(0.05 0.01 265);
+  --color-surface: oklch(0.12 0.025 265);
+  --color-surface-hover: oklch(0.16 0.03 265);
+  --color-elevated: oklch(0.18 0.03 265);
 
-  --font-display: 'Playfair Display', serif;
-  --font-body: 'DM Sans', sans-serif;
+  /* ── Ice Whites ── */
+  --color-frost: oklch(0.92 0.015 260);
+  --color-frost-muted: oklch(0.60 0.025 260);
+  --color-frost-dim: oklch(0.42 0.025 260);
+
+  /* ── Glacier Blue ── */
+  --color-glacier: oklch(0.72 0.12 240);
+  --color-glacier-bright: oklch(0.82 0.14 245);
+  --color-glacier-dim: oklch(0.55 0.08 240);
+  --color-glacier-ghost: oklch(0.30 0.05 240);
+
+  /* ── Copper Warmth ── */
+  --color-copper: oklch(0.62 0.10 55);
+  --color-copper-bright: oklch(0.72 0.12 55);
+  --color-copper-dim: oklch(0.50 0.08 55);
+
+  /* ── Frost Lavender ── */
+  --color-lavender: oklch(0.70 0.06 300);
+  --color-lavender-dim: oklch(0.55 0.04 300);
+
+  /* ── Borders ── */
+  --color-thin-ice: oklch(0.22 0.03 265);
+  --color-crack: oklch(0.30 0.04 265);
+  --color-shimmer: oklch(0.35 0.05 260);
+
+  /* ── Typography ── */
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'Space Grotesk', sans-serif;
 }
 
 :root {
-  --background: oklch(0.11 0.02 250);
-  --foreground: oklch(0.93 0.01 250);
+  --background: oklch(0.07 0.015 265);
+  --foreground: oklch(0.92 0.015 260);
 }
 
 body {
@@ -32,58 +51,129 @@ body {
   font-family: var(--font-body);
 }
 
-/* Staggered entrance animations */
-@keyframes fade-up {
+/* ═══════════════════════════════════════════════════════════════
+   ENTRANCE ANIMATIONS — staggered, exponential easing
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes frost-rise {
   from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(32px);
+    filter: blur(4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 
-@keyframes fade-in {
+@keyframes frost-fade {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes scale-in {
+@keyframes frost-scale {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.92);
+    filter: blur(2px);
   }
   to {
     opacity: 1;
     transform: scale(1);
+    filter: blur(0);
   }
 }
 
-@keyframes line-extend {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+@keyframes crystal-line {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
 }
 
-.animate-fade-up {
-  animation: fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+@keyframes drift-left {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.animate-fade-in {
-  animation: fade-in 1s ease-out both;
+@keyframes drift-right {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.animate-scale-in {
-  animation: scale-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+@keyframes shimmer-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 
-.animate-line-extend {
-  animation: line-extend 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-  transform-origin: left center;
+@keyframes aurora-breathe {
+  0%, 100% {
+    opacity: 0.04;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.08;
+    transform: scale(1.05) rotate(2deg);
+  }
 }
 
+.animate-frost-rise {
+  animation: frost-rise 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-frost-fade {
+  animation: frost-fade 0.8s ease-out both;
+}
+
+.animate-frost-scale {
+  animation: frost-scale 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-crystal-line {
+  animation: crystal-line 1.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center;
+}
+
+.animate-drift-left {
+  animation: drift-left 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-drift-right {
+  animation: drift-right 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-shimmer {
+  animation: shimmer-pulse 4s ease-in-out infinite;
+}
+
+.animate-aurora {
+  animation: aurora-breathe 8s ease-in-out infinite;
+}
+
+/* ── Stagger Delays ── */
+.delay-50 { animation-delay: 50ms; }
 .delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
 .delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
@@ -93,15 +183,35 @@ body {
 .delay-1000 { animation-delay: 1000ms; }
 .delay-1200 { animation-delay: 1200ms; }
 .delay-1400 { animation-delay: 1400ms; }
+.delay-1600 { animation-delay: 1600ms; }
 
-/* Subtle grain texture overlay — CSS-only, no SVG filter */
-.grain-overlay::after {
+/* ═══════════════════════════════════════════════════════════════
+   DECORATIVE ELEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Crystalline divider — sharp, geometric */
+.crystal-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklch, var(--color-glacier) 15%, transparent) 15%,
+    color-mix(in oklch, var(--color-glacier) 40%, transparent) 30%,
+    color-mix(in oklch, var(--color-glacier-bright) 50%, transparent) 50%,
+    color-mix(in oklch, var(--color-glacier) 40%, transparent) 70%,
+    color-mix(in oklch, var(--color-glacier) 15%, transparent) 85%,
+    transparent 100%
+  );
+}
+
+/* Frost grain overlay — subtle, icy texture */
+.frost-grain::after {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 100;
-  opacity: 0.03;
+  opacity: 0.025;
   background-image:
     repeating-radial-gradient(circle at 17% 32%, oklch(1 0 0) 0, transparent 1px),
     repeating-radial-gradient(circle at 62% 78%, oklch(1 0 0) 0, transparent 1px),
@@ -109,42 +219,80 @@ body {
   background-size: 3px 3px, 5px 5px, 7px 7px;
 }
 
-/* Luxury divider */
-.luxury-divider {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in oklch, var(--color-champagne) 30%, transparent) 20%,
-    color-mix(in oklch, var(--color-champagne) 60%, transparent) 50%,
-    color-mix(in oklch, var(--color-champagne) 30%, transparent) 80%,
-    transparent 100%
+/* Aurora glow — ambient background effect */
+.aurora-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in oklch, var(--color-glacier) 12%, transparent) 0%,
+    color-mix(in oklch, var(--color-lavender) 6%, transparent) 40%,
+    transparent 70%
   );
+  filter: blur(80px);
+  pointer-events: none;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
+/* Frosted surface for cards */
+.frost-surface {
+  background: color-mix(in oklch, var(--color-surface) 80%, transparent);
+  border: 1px solid var(--color-thin-ice);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Frost edge shimmer on hover */
+.frost-surface:hover {
+  border-color: var(--color-crack);
+  background: color-mix(in oklch, var(--color-surface-hover) 80%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SELECTION, SCROLLBAR, ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════════ */
+
+::selection {
+  background: color-mix(in oklch, var(--color-glacier) 25%, transparent);
+  color: var(--color-frost);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-/* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-/* Custom selection color */
-::selection {
-  background: color-mix(in oklch, var(--color-champagne) 30%, transparent);
-  color: var(--color-frost);
+/* Custom scrollbar for non-hidden areas */
+::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
+::-webkit-scrollbar-track {
+  background: var(--color-abyss);
 }
 
-/* Custom range slider for controls */
+::-webkit-scrollbar-thumb {
+  background: var(--color-thin-ice);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-crack);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RANGE SLIDER — crystalline style
+   ═══════════════════════════════════════════════════════════════ */
+
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -153,52 +301,76 @@ input[type="range"] {
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 2px;
-  background: var(--color-pearl-dim);
-  border-radius: 1px;
+  height: 1px;
+  background: var(--color-crack);
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--color-champagne);
-  border: 2px solid var(--color-midnight);
-  margin-top: -6px;
-  box-shadow: 0 0 8px color-mix(in oklch, var(--color-champagne) 30%, transparent);
+  background: var(--color-glacier);
+  border: 2px solid var(--color-twilight);
+  margin-top: -5.5px;
+  box-shadow: 0 0 8px color-mix(in oklch, var(--color-glacier) 30%, transparent);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 12px color-mix(in oklch, var(--color-champagne) 50%, transparent);
+  transform: scale(1.3);
+  box-shadow: 0 0 16px color-mix(in oklch, var(--color-glacier) 50%, transparent);
 }
 
 input[type="range"]::-moz-range-track {
-  height: 2px;
-  background: var(--color-pearl-dim);
-  border-radius: 1px;
+  height: 1px;
+  background: var(--color-crack);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--color-champagne);
-  border: 2px solid var(--color-midnight);
-  box-shadow: 0 0 8px color-mix(in oklch, var(--color-champagne) 30%, transparent);
+  background: var(--color-glacier);
+  border: 2px solid var(--color-twilight);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--color-glacier) 30%, transparent);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 12px color-mix(in oklch, var(--color-champagne) 50%, transparent);
+  transform: scale(1.3);
+  box-shadow: 0 0 16px color-mix(in oklch, var(--color-glacier) 50%, transparent);
 }
 
-/* Focus ring for accessibility */
+/* ═══════════════════════════════════════════════════════════════
+   ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════════ */
+
 :focus-visible {
-  outline: 1px solid var(--color-ice);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: 1px solid var(--color-glacier);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-frost-rise,
+  .animate-frost-fade,
+  .animate-frost-scale,
+  .animate-crystal-line,
+  .animate-drift-left,
+  .animate-drift-right {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  .animate-shimmer,
+  .animate-aurora {
+    animation: none;
+  }
 }

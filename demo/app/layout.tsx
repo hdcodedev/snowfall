@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { Playfair_Display, DM_Sans } from "next/font/google";
+import { Cormorant_Garamond, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Snowfall, SnowfallProvider } from '@hdcodedev/snowfall';
 import { Analytics } from "@vercel/analytics/next";
 
-const playfair = Playfair_Display({
+const display = Cormorant_Garamond({
   variable: "--font-display",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
-const dmSans = DM_Sans({
+const body = Space_Grotesk({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
-  weight: ["300", "400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${playfair.variable} ${dmSans.variable} antialiased grain-overlay`}
+        className={`${display.variable} ${body.variable} antialiased frost-grain`}
       >
         <SnowfallProvider>
           <Snowfall />

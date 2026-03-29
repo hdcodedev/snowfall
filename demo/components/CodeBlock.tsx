@@ -41,11 +41,11 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
         if (match[1]) {
           tokenClass = 'text-frost font-medium';
         } else if (match[2]) {
-          tokenClass = 'text-ice';
+          tokenClass = 'text-glacier';
         } else if (match[3]) {
-          tokenClass = 'text-frost-dim italic';
+          tokenClass = 'text-frost-dim';
         } else if (match[4]) {
-          tokenClass = 'text-champagne-dim';
+          tokenClass = 'text-copper-dim';
         }
 
         tokens.push(<span key={i++} className={tokenClass}>{content}</span>);
@@ -79,11 +79,11 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
       let tokenClass = 'text-frost-muted';
 
       if (match[1]) {
-        tokenClass = 'text-frost-dim italic';
+        tokenClass = 'text-frost-dim';
       } else if (match[2]) {
-        tokenClass = 'text-champagne-dim';
+        tokenClass = 'text-copper-dim';
       } else if (match[4]) {
-        tokenClass = 'text-ice font-medium';
+        tokenClass = 'text-glacier font-medium';
       } else if (match[5]) {
         tokenClass = 'text-frost font-semibold';
       } else if (match[6]) {
@@ -107,10 +107,11 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
 
   return (
     <div
-      className={`relative group rounded-sm overflow-hidden ${className}`}
+      className={`relative group overflow-hidden ${className}`}
+      style={{ borderRadius: 0 }}
     >
       {/* Language label */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-pearl-dim/20">
+      <div className="flex items-center justify-between px-5 py-2.5 border-b border-thin-ice/30">
         <span className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-dim">
           {language}
         </span>
@@ -120,7 +121,7 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
           className={`
             font-body text-[10px] uppercase tracking-[0.15em] transition-all duration-200 cursor-pointer
             ${copied
-              ? 'text-champagne'
+              ? 'text-glacier'
               : 'text-frost-dim hover:text-frost-muted'
             }
           `}
@@ -131,7 +132,7 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
         </button>
       </div>
 
-      <div className="overflow-x-auto p-4">
+      <div className="overflow-x-auto p-5">
         {highlightCode(code)}
       </div>
     </div>
