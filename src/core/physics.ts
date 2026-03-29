@@ -3,6 +3,27 @@ import { Snowflake, SnowAccumulation, SnowfallSurface, ElementSurface } from './
 import { getAccumulationSurfaces } from './dom';
 import { VAL_BOTTOM, TAU } from './constants';
 
+// Precomputed trig lookup table — eliminates Math.sin/Math.cos per flake per frame.
+// 512 entries gives ~0.012 rad resolution, visually identical to exact trig.
+const TRIG_TABLE_SIZE = 512;
+const SIN_TABLE = new Float64Array(TRIG_TABLE_SIZE);
+const COS_TABLE = new Float64Array(TRIG_TABLE_SIZE);
+for (let i = 0; i < TRIG_TABLE_SIZE; i++) {
+    const angle = (i / TRIG_TABLE_SIZE) * TAU;
+    SIN_TABLE[i] = Math.sin(angle);
+    COS_TABLE[i] = Math.cos(angle);
+}
+
+const trigSin = (angle: number): number => {
+    const idx = ((angle % TAU + TAU) % TAU) * (TRIG_TABLE_SIZE / TAU) | 0;
+    return SIN_TABLE[idx & (TRIG_TABLE_SIZE - 1)];
+};
+
+const trigCos = (angle: number): number => {
+    const idx = ((angle % TAU + TAU) % TAU) * (TRIG_TABLE_SIZE / TAU) | 0;
+    return COS_TABLE[idx & (TRIG_TABLE_SIZE - 1)];
+};
+
 export const createSnowflake = (
     worldWidth: number,
     config: PhysicsConfig,
@@ -231,7 +252,7 @@ export const accumulateSide = (
             if (borderRadius > 0 && (inTop || inBottom)) continue;
 
             const normalizedDist = Math.abs(dy) / spread;
-            const falloff = (Math.cos(normalizedDist * Math.PI) + 1) / 2;
+            const falloff = (trigCos(normalizedDist * Math.PI) + 1) / 2;
             const newHeight = Math.min(maxSideHeight, sideArray[y] + addHeight * falloff);
             sideArray[y] = newHeight;
             if (newHeight > newMax) newMax = newHeight;
@@ -247,9 +268,9 @@ export const accumulateSide = (
 const updateSnowflakePosition = (flake: Snowflake, dt: number): void => {
     flake.wobble += flake.wobbleSpeed * dt;
 
-    // Calculate position with wobble effect
-    flake.x += (flake.wind + Math.sin(flake.wobble) * 0.5) * dt;
-    flake.y += (flake.speed + Math.cos(flake.wobble * 0.5) * 0.1) * dt;
+    // Calculate position with wobble effect using precomputed trig LUT
+    flake.x += (flake.wind + trigSin(flake.wobble) * 0.5) * dt;
+    flake.y += (flake.speed + trigCos(flake.wobble * 0.5) * 0.1) * dt;
 };
 
 /**
@@ -321,45 +342,40 @@ const checkSurfaceCollision = (
         return false;
     }
 
-    const shouldAccumulate = isBottom ? Math.random() < 0.15 : true;
+    // For bottom surfaces, probabilistically skip accumulation (85% chance).
+    // Hoisted before spread computation to avoid wasted work.
+    if (isBottom && Math.random() >= 0.15) {
+        return false;
+    }
 
-    if (shouldAccumulate) {
-        const baseSpread = Math.ceil(flake.radius);
-        const spread = baseSpread + Math.floor(Math.random() * 2);
-        const accumRate = isBottom ? config.ACCUMULATION.BOTTOM_RATE : config.ACCUMULATION.TOP_RATE;
-        const centerOffset = Math.floor(Math.random() * 3) - 1;
+    const baseSpread = Math.ceil(flake.radius);
+    const spread = baseSpread + Math.floor(Math.random() * 2);
+    const accumRate = isBottom ? config.ACCUMULATION.BOTTOM_RATE : config.ACCUMULATION.TOP_RATE;
+    const centerOffset = Math.floor(Math.random() * 3) - 1;
 
-        for (let dx = -spread; dx <= spread; dx++) {
-            if (Math.random() < 0.15) continue;
-            const idx = localX + dx + centerOffset;
-            if (idx >= 0 && idx < acc.heights.length) {
-                const dist = Math.abs(dx);
-                const pixelMax = acc.maxHeights[idx] || 5;
+    for (let dx = -spread; dx <= spread; dx++) {
+        if (Math.random() < 0.15) continue;
+        const idx = localX + dx + centerOffset;
+        if (idx >= 0 && idx < acc.heights.length) {
+            const dist = Math.abs(dx);
+            const pixelMax = acc.maxHeights[idx] || 5;
 
-                const normDist = dist / spread;
-                const falloff = (Math.cos(normDist * Math.PI) + 1) / 2;
-                const baseAdd = 0.3 * falloff;
+            const normDist = dist / spread;
+            const falloff = (trigCos(normDist * Math.PI) + 1) / 2;
+            const baseAdd = 0.3 * falloff;
 
-                const randomFactor = 0.8 + Math.random() * 0.4;
-                const addHeight = baseAdd * randomFactor * accumRate;
+            const randomFactor = 0.8 + Math.random() * 0.4;
+            const addHeight = baseAdd * randomFactor * accumRate;
 
-                if (acc.heights[idx] < pixelMax && addHeight > 0) {
-                    const newH = Math.min(pixelMax, acc.heights[idx] + addHeight);
-                    acc.heights[idx] = newH;
-                    if (newH > acc.maxHeight) acc.maxHeight = newH;
-                }
+            if (acc.heights[idx] < pixelMax && addHeight > 0) {
+                const newH = Math.min(pixelMax, acc.heights[idx] + addHeight);
+                acc.heights[idx] = newH;
+                if (newH > acc.maxHeight) acc.maxHeight = newH;
             }
-        }
-
-        // For bottom surfaces, only land if accumulation happened
-        if (isBottom) {
-            return true;  // We only get here if shouldAccumulate was true
         }
     }
 
-    // For top surfaces, always land when hitting the surface
-    // For bottom surfaces that didn't accumulate, don't land (return false)
-    return !isBottom;
+    return true;
 };
 
 /**
@@ -484,7 +500,7 @@ export const meltAndSmoothAccumulation = (
         let newMaxHeight = 0;
         for (let i = 0; i < acc.heights.length; i++) {
             if (acc.heights[i] > 0) {
-                acc.heights[i] = Math.max(0, acc.heights[i] - meltRate);
+                acc.heights[i] -= meltRate;
             }
             if (acc.heights[i] > newMaxHeight) newMaxHeight = acc.heights[i];
         }
@@ -494,11 +510,11 @@ export const meltAndSmoothAccumulation = (
         let rightMax = 0;
         for (let i = 0; i < acc.leftSide.length; i++) {
             if (acc.leftSide[i] > 0) {
-                acc.leftSide[i] = Math.max(0, acc.leftSide[i] - meltRate);
+                acc.leftSide[i] -= meltRate;
                 if (acc.leftSide[i] > leftMax) leftMax = acc.leftSide[i];
             }
             if (acc.rightSide[i] > 0) {
-                acc.rightSide[i] = Math.max(0, acc.rightSide[i] - meltRate);
+                acc.rightSide[i] -= meltRate;
                 if (acc.rightSide[i] > rightMax) rightMax = acc.rightSide[i];
             }
         }
