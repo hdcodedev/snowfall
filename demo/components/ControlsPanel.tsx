@@ -25,10 +25,10 @@ function Slider({
   return (
     <div className="group">
       <div className="flex items-baseline justify-between mb-2">
-        <label htmlFor={id} className="font-body text-xs text-frost-muted tracking-wide">
+        <label htmlFor={id} className="font-body text-[10px] text-frost-muted tracking-[0.15em] uppercase">
           {label}
         </label>
-        <span className="font-body text-xs text-champagne tabular-nums" aria-hidden="true">
+        <span className="font-body text-[10px] text-glacier tabular-nums" aria-hidden="true">
           {step < 1 ? value.toFixed(1) : Math.round(value)}
           {unit}
         </span>
@@ -60,13 +60,13 @@ function Section({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-pearl-dim/30 last:border-b-0">
+    <div className="border-b border-thin-ice/50 last:border-b-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         className="w-full flex items-center justify-between py-3 group"
       >
-        <span className="font-body text-xs uppercase tracking-[0.2em] text-frost-muted group-hover:text-frost transition-colors">
+        <span className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-muted group-hover:text-frost transition-colors duration-200">
           {title}
         </span>
         <svg
@@ -76,8 +76,9 @@ function Section({
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          strokeWidth={1.5}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="square" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {isOpen && <div className="pb-4 space-y-4">{children}</div>}
@@ -91,29 +92,31 @@ export default function ControlsPanel() {
 
   return (
     <>
-      {/* Toggle — visible on mobile, hidden on desktop (sidebar always visible on md+) */}
-      <div className="fixed top-6 left-6 md:top-8 md:left-8 z-50 md:hidden">
+      {/* Toggle — visible on mobile, hidden on desktop */}
+      <div className="fixed top-8 left-8 md:top-10 md:left-10 z-50 md:hidden">
           <button
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle physics controls"
             className={`
-              w-11 h-11 flex items-center justify-center
-              border rounded-sm backdrop-blur-sm transition-all duration-300
+              w-10 h-10 flex items-center justify-center
+              border transition-all duration-300
               ${isOpen
-                ? 'border-champagne/40 bg-champagne/5'
-                : 'border-pearl-dim bg-surface/50 hover:bg-surface'
+                ? 'border-glacier/30 bg-glacier/5'
+                : 'border-thin-ice bg-twilight/50 hover:bg-surface'
               }
             `}
+            style={{ borderRadius: 0 }}
           >
           <svg
-            className={`w-4 h-4 transition-all duration-200 ${
-              isOpen ? 'text-champagne rotate-90' : 'text-frost-dim'
+            className={`w-[14px] h-[14px] transition-all duration-200 ${
+              isOpen ? 'text-glacier' : 'text-frost-dim'
             }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            strokeWidth={1.2}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            <path strokeLinecap="square" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
         </button>
       </div>
@@ -123,30 +126,31 @@ export default function ControlsPanel() {
         className={`
           fixed z-40 transition-transform duration-300 ease-out
           ${isOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
-          bottom-0 left-0 right-0 md:top-0 md:left-0 md:bottom-0 md:w-72 md:right-auto
+          bottom-0 left-0 right-0 md:top-0 md:left-0 md:bottom-0 md:w-64 md:right-auto
         `}
       >
         <div className="
           bg-abyss/95 md:bg-abyss/80 backdrop-blur-xl
-          border-t md:border-r border-pearl-dim/20
-          rounded-t-xl md:rounded-none
+          border-t md:border-r border-thin-ice/30
           h-[60vh] md:h-full
           overflow-y-auto no-scrollbar
-        ">
+        "
+        style={{ borderRadius: 0 }}
+        >
           {/* Header */}
-          <div className="sticky top-0 bg-abyss/95 md:bg-abyss/80 backdrop-blur-xl border-b border-pearl-dim/20 px-5 py-4 flex items-center justify-between">
-            <h3 className="font-body text-xs uppercase tracking-[0.2em] text-frost-muted">
+          <div className="sticky top-0 bg-abyss/95 md:bg-abyss/80 backdrop-blur-xl border-b border-thin-ice/30 px-6 py-4 flex items-center justify-between">
+            <h3 className="font-body text-[10px] uppercase tracking-[0.25em] text-frost-muted">
               Physics
             </h3>
             <button
               onClick={resetPhysics}
-              className="font-body text-[10px] uppercase tracking-[0.15em] text-frost-dim hover:text-champagne transition-colors"
+              className="font-body text-[10px] uppercase tracking-[0.15em] text-frost-dim hover:text-glacier transition-colors duration-200"
             >
               Reset
             </button>
           </div>
 
-          <div className="px-5 py-2">
+          <div className="px-6 py-2">
             {/* Flakes */}
             <Section title="Flakes" defaultOpen>
               <Slider
