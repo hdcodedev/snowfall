@@ -107,16 +107,7 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
 
   return (
     <div
-      className={`relative group rounded-sm overflow-hidden cursor-pointer transition-all active:scale-[0.99] ${className}`}
-      role="button"
-      tabIndex={0}
-      onClick={handleCopy}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleCopy();
-        }
-      }}
+      className={`relative group rounded-sm overflow-hidden ${className}`}
     >
       {/* Language label */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-pearl-dim/20">
@@ -125,8 +116,9 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
         </span>
         <button
           type="button"
+          onClick={handleCopy}
           className={`
-            font-body text-[10px] uppercase tracking-[0.15em] transition-all duration-200
+            font-body text-[10px] uppercase tracking-[0.15em] transition-all duration-200 cursor-pointer
             ${copied
               ? 'text-champagne'
               : 'text-frost-dim hover:text-frost-muted'

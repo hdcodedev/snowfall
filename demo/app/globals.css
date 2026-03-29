@@ -94,17 +94,19 @@ body {
 .delay-1200 { animation-delay: 1200ms; }
 .delay-1400 { animation-delay: 1400ms; }
 
-/* Subtle grain texture overlay */
+/* Subtle grain texture overlay — CSS-only, no SVG filter */
 .grain-overlay::after {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 100;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
+  opacity: 0.03;
+  background-image:
+    repeating-radial-gradient(circle at 17% 32%, oklch(1 0 0) 0, transparent 1px),
+    repeating-radial-gradient(circle at 62% 78%, oklch(1 0 0) 0, transparent 1px),
+    repeating-radial-gradient(circle at 89% 14%, oklch(1 0 0) 0, transparent 1px);
+  background-size: 3px 3px, 5px 5px, 7px 7px;
 }
 
 /* Luxury divider */
@@ -113,9 +115,9 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    oklch(0.78 0.08 85 / 0.3) 20%,
-    oklch(0.78 0.08 85 / 0.6) 50%,
-    oklch(0.78 0.08 85 / 0.3) 80%,
+    color-mix(in oklch, var(--color-champagne) 30%, transparent) 20%,
+    color-mix(in oklch, var(--color-champagne) 60%, transparent) 50%,
+    color-mix(in oklch, var(--color-champagne) 30%, transparent) 80%,
     transparent 100%
   );
 }
@@ -133,8 +135,8 @@ body {
 
 /* Custom selection color */
 ::selection {
-  background: oklch(0.78 0.08 85 / 0.3);
-  color: oklch(0.93 0.01 250);
+  background: color-mix(in oklch, var(--color-champagne) 30%, transparent);
+  color: var(--color-frost);
 }
 
 /* Smooth scroll */
@@ -152,7 +154,7 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-runnable-track {
   height: 2px;
-  background: oklch(0.30 0.02 250);
+  background: var(--color-pearl-dim);
   border-radius: 1px;
 }
 
@@ -161,21 +163,21 @@ input[type="range"]::-webkit-slider-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: oklch(0.78 0.08 85);
-  border: 2px solid oklch(0.11 0.02 250);
+  background: var(--color-champagne);
+  border: 2px solid var(--color-midnight);
   margin-top: -6px;
-  box-shadow: 0 0 8px oklch(0.78 0.08 85 / 0.3);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--color-champagne) 30%, transparent);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 12px oklch(0.78 0.08 85 / 0.5);
+  box-shadow: 0 0 12px color-mix(in oklch, var(--color-champagne) 50%, transparent);
 }
 
 input[type="range"]::-moz-range-track {
   height: 2px;
-  background: oklch(0.30 0.02 250);
+  background: var(--color-pearl-dim);
   border-radius: 1px;
 }
 
@@ -183,20 +185,20 @@ input[type="range"]::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: oklch(0.78 0.08 85);
-  border: 2px solid oklch(0.11 0.02 250);
-  box-shadow: 0 0 8px oklch(0.78 0.08 85 / 0.3);
+  background: var(--color-champagne);
+  border: 2px solid var(--color-midnight);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--color-champagne) 30%, transparent);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 12px oklch(0.78 0.08 85 / 0.5);
+  box-shadow: 0 0 12px color-mix(in oklch, var(--color-champagne) 50%, transparent);
 }
 
 /* Focus ring for accessibility */
 :focus-visible {
-  outline: 1px solid oklch(0.72 0.06 230);
+  outline: 1px solid var(--color-ice);
   outline-offset: 2px;
   border-radius: 4px;
 }
