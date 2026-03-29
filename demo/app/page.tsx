@@ -4,6 +4,7 @@ import CodeBlock from '@/components/CodeBlock';
 import ControlsPanel from '@/components/ControlsPanel';
 import ToggleButton from '@/components/ToggleButton';
 import { useSnowfall } from '@hdcodedev/snowfall';
+import { version as pkgVersion } from '../../package.json';
 
 function FeatureRow({
   index,
@@ -82,7 +83,7 @@ function StatBlock({ value, label }: { value: string; label: string }) {
 }
 
 export default function Home() {
-  const { isEnabled, physicsConfig } = useSnowfall();
+  const { isEnabled, physicsConfig, metrics } = useSnowfall();
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
@@ -127,7 +128,7 @@ export default function Home() {
           <div className="animate-frost-rise delay-700 flex items-center gap-3 text-frost-dim">
             <span className="w-8 h-px bg-glacier-ghost" />
             <span className="font-body text-[10px] uppercase tracking-[0.25em]">
-              v1.0
+              v{pkgVersion}
             </span>
           </div>
 
@@ -169,7 +170,10 @@ export default function Home() {
           ═══════════════════════════════════════════════════════════════ */}
       <section className="border-y border-thin-ice py-10 md:py-14 px-8 md:px-16 lg:px-24">
         <div className="max-w-4xl mx-auto flex items-center justify-between md:justify-around">
-          <StatBlock value="60" label="FPS" />
+          <StatBlock
+            value={metrics ? metrics.fps.toFixed(0) : '--'}
+            label="FPS"
+          />
           <div className="w-px h-10 bg-thin-ice" />
           <StatBlock value="0" label="Dependencies" />
           <div className="w-px h-10 bg-thin-ice hidden md:block" />
@@ -177,7 +181,10 @@ export default function Home() {
             <StatBlock value="2" label="Lines to Add" />
           </div>
           <div className="w-px h-10 bg-thin-ice" />
-          <StatBlock value="1000+" label="Flakes Default" />
+          <StatBlock
+            value={metrics ? `${metrics.flakeCount}` : '--'}
+            label="Flakes"
+          />
         </div>
       </section>
 
@@ -409,7 +416,7 @@ function App() {
             <span className="font-display text-lg font-light text-frost-dim">Snowfall</span>
             <span className="w-8 h-px bg-thin-ice" />
             <span className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-dim">
-              Apache-2.0
+              MIT
             </span>
           </div>
 
