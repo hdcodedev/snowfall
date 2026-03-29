@@ -23,10 +23,13 @@ export interface SnowAccumulation {
     maxSideHeight: number;
     leftMax: number;
     rightMax: number;
+    /** Cached max of heights[] — avoids scanning the array every frame in draw path */
+    maxHeight: number;
     borderRadius: number;
     curveOffsets: number[];
     sideGravityMultipliers: number[];
     type: SnowfallSurface;
+    _smoothTemp: number[];
 }
 
 export interface ElementSurface {

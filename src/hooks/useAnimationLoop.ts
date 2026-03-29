@@ -44,6 +44,8 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
     const visibleRectsRef = useRef<ElementSurface[]>([]);
     // Dirty flag for rect updates - only recalculate when needed (resize, element changes)
     const dirtyRectsRef = useRef(true);
+    // Frame counter for deterministic collision distribution
+    const frameIndexRef = useRef(0);
 
     const animate = useCallback((currentTime: number) => {
         const {
@@ -80,7 +82,7 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
         const deltaTime = Math.min(currentTime - lastTimeRef.current, 50);
 
-        // Track FPS using second-bucket approach (zero allocations per frame)
+        // Single performance.now() call per frame — derive all timings from this
         const now = performance.now();
         updateFps(now);
 
@@ -89,11 +91,9 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
         lastTimeRef.current = currentTime;
         const dt = deltaTime / 16.67;
+        const frameIndex = frameIndexRef.current++;
 
         const frameStartTime = now;
-
-        // Time canvas clear
-        const clearStart = now;
 
         // Reset transform to clear the entire viewport-sized canvas
         const dpr = dprRef.current;
@@ -105,7 +105,8 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         const scrollY = window.scrollY;
         ctx.translate(-scrollX, -scrollY);
 
-        metricsRef.current.clearTime = performance.now() - clearStart;
+        const clearEnd = performance.now();
+        metricsRef.current.clearTime = clearEnd - now;
 
         const snowflakes = snowflakesRef.current;
 
@@ -118,9 +119,9 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             dirtyRectsRef.current = false;
         }
 
-        // Time physics
+        // Physics
         const physicsStart = performance.now();
-        meltAndSmoothAccumulation(elementRectsRef.current, physicsConfigRef.current, dt);
+        meltAndSmoothAccumulation(elementRectsRef.current, physicsConfigRef.current, dt, frameIndex);
         const docEl = document.documentElement;
         const worldWidth = docEl.scrollWidth;
         const worldHeight = docEl.scrollHeight;
@@ -131,7 +132,8 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             physicsConfigRef.current,
             dt,
             worldWidth,
-            worldHeight
+            worldHeight,
+            frameIndex
         );
         metricsRef.current.physicsTime = performance.now() - physicsStart;
 
@@ -180,8 +182,9 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             drawSideAccumulations(ctx, visibleRects, scrollX, scrollY);
         }
 
-        metricsRef.current.drawTime = performance.now() - drawStart;
-        metricsRef.current.frameTime = performance.now() - frameStartTime;
+        const drawEnd = performance.now();
+        metricsRef.current.drawTime = drawEnd - drawStart;
+        metricsRef.current.frameTime = drawEnd - frameStartTime;
 
         // Update metrics every 500ms
         if (currentTime - lastMetricsUpdateRef.current > 500) {

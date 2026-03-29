@@ -107,7 +107,7 @@ export const initializeMaxHeights = (
     borderRadius: number,
     isBottom: boolean = false
 ): number[] => {
-    let maxHeights = new Array(width);
+    const maxHeights = new Array(width);
     for (let i = 0; i < width; i++) {
         let edgeFactor = 1.0;
         if (!isBottom && borderRadius > 0) {
@@ -120,13 +120,19 @@ export const initializeMaxHeights = (
         maxHeights[i] = baseMax * edgeFactor * (0.85 + Math.random() * 0.15);
     }
 
+    // Ping-pong buffer for smoothing — avoids allocating a new array each pass
+    const smoothBuf = new Array(width);
     const smoothPasses = 4;
     for (let p = 0; p < smoothPasses; p++) {
-        const smoothed = [...maxHeights];
+        smoothBuf[0] = maxHeights[0];
+        smoothBuf[width - 1] = maxHeights[width - 1];
         for (let i = 1; i < width - 1; i++) {
-            smoothed[i] = (maxHeights[i - 1] + maxHeights[i] + maxHeights[i + 1]) / 3;
+            smoothBuf[i] = (maxHeights[i - 1] + maxHeights[i] + maxHeights[i + 1]) / 3;
         }
-        maxHeights = smoothed;
+        // Swap: copy smoothed result back into maxHeights
+        for (let i = 0; i < width; i++) {
+            maxHeights[i] = smoothBuf[i];
+        }
     }
 
     return maxHeights;
@@ -208,10 +214,12 @@ export const initializeAccumulation = (
             maxSideHeight: isBottom ? 0 : config.MAX_DEPTH.SIDE,
             leftMax: existing?.leftSide.length === height ? existing.leftMax : 0,
             rightMax: existing?.rightSide.length === height ? existing.rightMax : 0,
+            maxHeight: existing?.maxHeight || 0,
             borderRadius,
             curveOffsets: calculateCurveOffsets(width, borderRadius, isBottom),
             sideGravityMultipliers: calculateGravityMultipliers(height),
-            type
+            type,
+            _smoothTemp: existing?._smoothTemp || [],
         });
     });
 };
@@ -354,7 +362,9 @@ const checkSurfaceCollision = (
                 const addHeight = baseAdd * randomFactor * accumRate;
 
                 if (acc.heights[idx] < pixelMax && addHeight > 0) {
-                    acc.heights[idx] = Math.min(pixelMax, acc.heights[idx] + addHeight);
+                    const newH = Math.min(pixelMax, acc.heights[idx] + addHeight);
+                    acc.heights[idx] = newH;
+                    if (newH > acc.maxHeight) acc.maxHeight = newH;
                 }
             }
         }
@@ -391,7 +401,8 @@ export const updateSnowflakes = (
     config: PhysicsConfig,
     dt: number,
     worldWidth: number,
-    worldHeight: number
+    worldHeight: number,
+    frameIndex: number = 0
 ) => {
     // Scroll used for World -> Viewport mapping for collision
     // Flakes are in World Space.
@@ -400,7 +411,12 @@ export const updateSnowflakes = (
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
 
-    for (let i = snowflakes.length - 1; i >= 0; i--) {
+    // Deterministic collision check: spread checks across frames instead of Math.random().
+    // Each frame, only flakes whose index matches (frameIndex % divisor) check collisions.
+    const collisionDivisor = Math.max(1, Math.round(1 / config.COLLISION_CHECK_RATE));
+
+    let i = snowflakes.length;
+    while (i-- > 0) {
         const flake = snowflakes[i];
 
         // Always update position and animation (cheap, must happen every frame)
@@ -408,12 +424,8 @@ export const updateSnowflakes = (
 
         let landed = false;
 
-        // OPTIMIZATION: Probabilistic collision detection
-        // Only check collisions for a percentage of snowflakes per frame
-        // Configurable via config.COLLISION_CHECK_RATE
-        const shouldCheckCollision = Math.random() < config.COLLISION_CHECK_RATE;
-
-        if (shouldCheckCollision) {
+        // Deterministic collision detection: only a subset of flakes check per frame
+        if (i % collisionDivisor === frameIndex % collisionDivisor) {
             // Map flake from World Space to Viewport Space for collision detection
             const flakeViewportX = flake.x - scrollX;
             const flakeViewportY = flake.y - scrollY;
@@ -436,9 +448,14 @@ export const updateSnowflakes = (
             }
         }
 
-        // Remove snowflake if it landed or went out of bounds
+        // Remove snowflake if it landed or went out of bounds.
+        // Swap-and-pop: O(1) removal instead of O(n) splice.
         if (shouldRemoveSnowflake(flake, landed, worldWidth, worldHeight)) {
-            snowflakes.splice(i, 1);
+            const lastIdx = snowflakes.length - 1;
+            if (i < lastIdx) {
+                snowflakes[i] = snowflakes[lastIdx];
+            }
+            snowflakes.length = lastIdx;
         }
     }
 };
@@ -446,26 +463,50 @@ export const updateSnowflakes = (
 export const meltAndSmoothAccumulation = (
     elementRects: ElementSurface[],
     config: PhysicsConfig,
-    dt: number
+    dt: number,
+    frameIndex: number = 0
 ) => {
+    // Smooth only every 3 frames — visual difference is imperceptible, saves ~66% of smoothing work
+    const shouldSmooth = frameIndex % 3 === 0;
+
     for (const { acc } of elementRects) {
         const meltRate = config.MELT_SPEED * dt;
         const len = acc.heights.length;
 
-        // Smooth
-        if (len > 2) {
+        // Smooth in-place using persistent temp buffer (avoids allocating [...acc.heights] every frame)
+        if (shouldSmooth && len > 2) {
+            // Reuse or grow temp buffer
+            if (acc._smoothTemp.length < len) {
+                acc._smoothTemp = new Array(len);
+            }
+
+            // Read from heights, write smoothed values to temp
+            acc._smoothTemp[0] = acc.heights[0];
             for (let i = 1; i < len - 1; i++) {
                 if (acc.heights[i] > 0.05) {
                     const avg = (acc.heights[i - 1] + acc.heights[i + 1]) / 2;
-                    acc.heights[i] = acc.heights[i] * 0.99 + avg * 0.01;
+                    acc._smoothTemp[i] = acc.heights[i] * 0.99 + avg * 0.01;
+                } else {
+                    acc._smoothTemp[i] = acc.heights[i];
                 }
+            }
+            acc._smoothTemp[len - 1] = acc.heights[len - 1];
+
+            // Copy back in-place
+            for (let i = 0; i < len; i++) {
+                acc.heights[i] = acc._smoothTemp[i];
             }
         }
 
         // Melt
+        let newMaxHeight = 0;
         for (let i = 0; i < acc.heights.length; i++) {
-            if (acc.heights[i] > 0) acc.heights[i] = Math.max(0, acc.heights[i] - meltRate);
+            if (acc.heights[i] > 0) {
+                acc.heights[i] = Math.max(0, acc.heights[i] - meltRate);
+            }
+            if (acc.heights[i] > newMaxHeight) newMaxHeight = acc.heights[i];
         }
+        acc.maxHeight = newMaxHeight;
         // Melt sides and update max values
         let leftMax = 0;
         let rightMax = 0;
