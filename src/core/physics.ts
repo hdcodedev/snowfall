@@ -1,11 +1,13 @@
 import { PhysicsConfig } from '../components/SnowfallProvider';
-import { Snowflake, SnowAccumulation, SnowfallSurface, ElementSurface } from './types';
+import { Snowflake, SnowAccumulation, ElementSurface } from './types';
 import { getAccumulationSurfaces } from './dom';
 import { VAL_BOTTOM, TAU } from './constants';
 
 // Precomputed trig lookup table — eliminates Math.sin/Math.cos per flake per frame.
 // 512 entries gives ~0.012 rad resolution, visually identical to exact trig.
 const TRIG_TABLE_SIZE = 512;
+const TRIG_TABLE_MASK = TRIG_TABLE_SIZE - 1; // 511 — for branchless index wrapping
+const TRIG_ANGLE_SCALE = TRIG_TABLE_SIZE / TAU; // precomputed to avoid division per lookup
 const SIN_TABLE = new Float64Array(TRIG_TABLE_SIZE);
 const COS_TABLE = new Float64Array(TRIG_TABLE_SIZE);
 for (let i = 0; i < TRIG_TABLE_SIZE; i++) {
@@ -15,13 +17,15 @@ for (let i = 0; i < TRIG_TABLE_SIZE; i++) {
 }
 
 const trigSin = (angle: number): number => {
-    const idx = ((angle % TAU + TAU) % TAU) * (TRIG_TABLE_SIZE / TAU) | 0;
-    return SIN_TABLE[idx & (TRIG_TABLE_SIZE - 1)];
+    // Normalize to [0, TAU) then scale to table index.
+    // Single modulo + conditional add is cheaper than double-modulo ((x % TAU + TAU) % TAU).
+    const normalized = angle < 0 ? angle % TAU + TAU : angle % TAU;
+    return SIN_TABLE[(normalized * TRIG_ANGLE_SCALE | 0) & TRIG_TABLE_MASK];
 };
 
 const trigCos = (angle: number): number => {
-    const idx = ((angle % TAU + TAU) % TAU) * (TRIG_TABLE_SIZE / TAU) | 0;
-    return COS_TABLE[idx & (TRIG_TABLE_SIZE - 1)];
+    const normalized = angle < 0 ? angle % TAU + TAU : angle % TAU;
+    return COS_TABLE[(normalized * TRIG_ANGLE_SCALE | 0) & TRIG_TABLE_MASK];
 };
 
 export const createSnowflake = (
@@ -44,7 +48,6 @@ export const createSnowflake = (
     };
 
     const { MIN, MAX } = config.FLAKE_SIZE;
-    const sizeRatio = dna;
 
     // Background vs foreground tuning
     const profile = isBackground
@@ -69,7 +72,7 @@ export const createSnowflake = (
             wobbleScale: 0.02
         };
 
-    const radius = profile.sizeMin + sizeRatio * profile.sizeRange;
+    const radius = profile.sizeMin + dna * profile.sizeRange;
     const initialWobble = noise.wobblePhase * TAU;
 
     return {
@@ -83,8 +86,6 @@ export const createSnowflake = (
         wind: (noise.wind - 0.5) * profile.windScale,
         wobble: initialWobble,
         wobbleSpeed: noise.wobbleSpeed * profile.wobbleScale + profile.wobbleBase,
-        sizeRatio: sizeRatio,
-        isBackground: isBackground
     };
 };
 
@@ -169,23 +170,13 @@ export const initializeAccumulation = (
         }
     }
 
-    // Batch all DOM reads BEFORE any writes to avoid layout thrashing.
-    // getBoundingClientRect forces layout; getComputedStyle forces style recalc.
-    // Interleaving them per-element causes N layout recalculations.
-    // Batching gives us 1 layout + 1 style recalc total.
-    const reads: { el: Element; type: SnowfallSurface; rect: DOMRect; styles: CSSStyleDeclaration; existing: SnowAccumulation | undefined }[] = [];
+    // Process each element — getBoundingClientRect forces layout once per element
+    // but since we only have MAX_SURFACES (15) elements, this is acceptable.
+    // Avoids allocating a temporary reads array on every init call.
     for (const { el, type } of elements) {
-        reads.push({
-            el,
-            type,
-            rect: el.getBoundingClientRect(),
-            styles: window.getComputedStyle(el),
-            existing: accumulationMap.get(el),
-        });
-    }
-
-    // Now do all writes using the batched reads
-    for (const { el, type, rect, styles, existing } of reads) {
+        const rect = el.getBoundingClientRect();
+        const styles = window.getComputedStyle(el);
+        const existing = accumulationMap.get(el);
         const width = Math.ceil(rect.width);
         const isBottom = type === VAL_BOTTOM;
 
@@ -237,12 +228,12 @@ export const accumulateSide = (
     localY: number,
     maxSideHeight: number,
     borderRadius: number,
-    config: PhysicsConfig,
+    sideRate: number,
     currentMax: number
 ): number => {
     const spread = 4;
     // Single random call instead of per-iteration
-    const addHeight = config.ACCUMULATION.SIDE_RATE * (0.8 + Math.random() * 0.4);
+    const addHeight = sideRate * (0.8 + Math.random() * 0.4);
     let newMax = currentMax;
 
     for (let dy = -spread; dy <= spread; dy++) {
@@ -283,7 +274,7 @@ const checkSideCollision = (
     flakeViewportY: number,
     rect: DOMRect,
     acc: SnowAccumulation,
-    config: PhysicsConfig
+    sideRate: number
 ): boolean => {
     const isInVerticalBounds = flakeViewportY >= rect.top && flakeViewportY <= rect.bottom;
 
@@ -304,13 +295,13 @@ const checkSideCollision = (
 
     // Check left side
     if (flakeViewportX >= rect.left - 5 && flakeViewportX < rect.left + 3) {
-        acc.leftMax = accumulateSide(acc.leftSide, rect.height, localY, acc.maxSideHeight, borderRadius, config, acc.leftMax);
+        acc.leftMax = accumulateSide(acc.leftSide, rect.height, localY, acc.maxSideHeight, borderRadius, sideRate, acc.leftMax);
         return true;
     }
 
     // Check right side
     if (flakeViewportX > rect.right - 3 && flakeViewportX <= rect.right + 5) {
-        acc.rightMax = accumulateSide(acc.rightSide, rect.height, localY, acc.maxSideHeight, borderRadius, config, acc.rightMax);
+        acc.rightMax = accumulateSide(acc.rightSide, rect.height, localY, acc.maxSideHeight, borderRadius, sideRate, acc.rightMax);
         return true;
     }
 
@@ -423,6 +414,9 @@ export const updateSnowflakes = (
     // Each frame, only flakes whose index matches (frameIndex % divisor) check collisions.
     const collisionDivisor = Math.max(1, Math.round(1 / config.COLLISION_CHECK_RATE));
 
+    // Hoist config properties to local variables — avoids nested property access in hot loop
+    const sideRate = config.ACCUMULATION.SIDE_RATE;
+
     let i = snowflakes.length;
     while (i-- > 0) {
         const flake = snowflakes[i];
@@ -444,7 +438,7 @@ export const updateSnowflakes = (
 
                 // Check side collisions (left/right edges)
                 if (!landed && !isBottom) {
-                    landed = checkSideCollision(flakeViewportX, flakeViewportY, rect, acc, config);
+                    landed = checkSideCollision(flakeViewportX, flakeViewportY, rect, acc, sideRate);
                     if (landed) break;
                 }
 
@@ -483,26 +477,34 @@ export const meltAndSmoothAccumulation = (
 
         // Smooth in-place using persistent temp buffer (avoids allocating [...acc.heights] every frame)
         if (shouldSmooth && len > 2) {
-            // Reuse or grow temp buffer
-            if (acc._smoothTemp.length < len) {
-                acc._smoothTemp = new Array(len);
-            }
-
-            // Read from heights, write smoothed values to temp
-            acc._smoothTemp[0] = acc.heights[0];
-            for (let i = 1; i < len - 1; i++) {
-                if (acc.heights[i] > 0.05) {
-                    const avg = (acc.heights[i - 1] + acc.heights[i + 1]) / 2;
-                    acc._smoothTemp[i] = acc.heights[i] * 0.99 + avg * 0.01;
-                } else {
-                    acc._smoothTemp[i] = acc.heights[i];
-                }
-            }
-            acc._smoothTemp[len - 1] = acc.heights[len - 1];
-
-            // Copy back in-place
+            // Early exit: if all values are near-zero, skip smoothing entirely
+            let needsSmoothing = false;
             for (let i = 0; i < len; i++) {
-                acc.heights[i] = acc._smoothTemp[i];
+                if (acc.heights[i] > 0.05) { needsSmoothing = true; break; }
+            }
+
+            if (needsSmoothing) {
+                // Reuse or grow temp buffer
+                if (acc._smoothTemp.length < len) {
+                    acc._smoothTemp = new Array(len);
+                }
+
+                // Read from heights, write smoothed values to temp
+                acc._smoothTemp[0] = acc.heights[0];
+                for (let i = 1; i < len - 1; i++) {
+                    if (acc.heights[i] > 0.05) {
+                        const avg = (acc.heights[i - 1] + acc.heights[i + 1]) / 2;
+                        acc._smoothTemp[i] = acc.heights[i] * 0.99 + avg * 0.01;
+                    } else {
+                        acc._smoothTemp[i] = acc.heights[i];
+                    }
+                }
+                acc._smoothTemp[len - 1] = acc.heights[len - 1];
+
+                // Copy back in-place
+                for (let i = 0; i < len; i++) {
+                    acc.heights[i] = acc._smoothTemp[i];
+                }
             }
         }
 

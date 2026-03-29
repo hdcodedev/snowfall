@@ -6,8 +6,6 @@ export interface Snowflake {
     wind: number;
     wobble: number;
     wobbleSpeed: number;
-    sizeRatio: number;
-    isBackground: boolean;
 }
 
 export type SnowfallSurface = 'top' | 'bottom';
