@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { Snowfall, SnowfallProvider } from '@hdcodedev/snowfall';
+import { Snowfall, SnowfallProvider, DebugPanel } from '@hdcodedev/snowfall';
 import { Analytics } from "@vercel/analytics/next";
 
 const display = Cormorant_Garamond({
@@ -39,6 +39,7 @@ export default function RootLayout({
       >
         <SnowfallProvider>
           <Snowfall />
+          <DebugPanel />
           {children}
         </SnowfallProvider>
         <Analytics />
