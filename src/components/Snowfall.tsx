@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSnowfall } from './SnowfallProvider';
 import { Snowflake, SnowAccumulation } from '../core/types';
-import { initializeAccumulation } from '../core/physics';
+import { initializeAccumulation, clearVisualTemplateCache } from '../core/physics';
 import { usePerformanceMetrics } from '../hooks/usePerformanceMetrics';
 import { useSnowfallCanvas } from '../hooks/useSnowfallCanvas';
 import { useAnimationLoop } from '../hooks/useAnimationLoop';
@@ -50,6 +50,8 @@ export default function Snowfall() {
 
     useEffect(() => {
         physicsConfigRef.current = physicsConfig;
+        clearVisualTemplateCache();
+        snowflakesRef.current = [];
         if (isMounted) {
             resizeCanvas(physicsConfig.MAX_RENDER_DPR);
         }
@@ -130,13 +132,28 @@ export default function Snowfall() {
 
         // Observe DOM mutations to detect new/removed elements
         const mutationObserver = new MutationObserver((mutations) => {
-            // Check if any mutations actually added or removed nodes
+            // Check if any mutations actually added or removed element nodes (not text/attributes)
             let hasStructuralChange = false;
             for (const mutation of mutations) {
-                if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
-                    hasStructuralChange = true;
-                    break;
+                if (mutation.type !== 'childList') continue;
+                // Skip if the changed node is the canvas itself
+                const targetIsCanvas = mutation.target === canvas;
+                if (targetIsCanvas) continue;
+                // Only count actual element nodes, not text nodes
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE && node !== canvas) {
+                        hasStructuralChange = true;
+                        break;
+                    }
                 }
+                if (hasStructuralChange) break;
+                for (const node of mutation.removedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE && node !== canvas) {
+                        hasStructuralChange = true;
+                        break;
+                    }
+                }
+                if (hasStructuralChange) break;
             }
             if (hasStructuralChange) {
                 scheduleAccumulationInit();

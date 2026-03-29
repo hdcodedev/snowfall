@@ -1,11 +1,21 @@
-export interface Snowflake {
-    x: number;
-    y: number;
+/**
+ * Shared static properties for flakes with the same "DNA".
+ * Flakes with identical visual config reference the same object (interned),
+ * eliminating redundant object allocations for radius/speed/wind/wobbleSpeed.
+ */
+export interface SnowflakeVisual {
     radius: number;
     speed: number;
     wind: number;
-    wobble: number;
     wobbleSpeed: number;
+}
+
+export interface Snowflake {
+    x: number;
+    y: number;
+    wobble: number;
+    /** Reference to shared visual properties (interned via template cache) */
+    visual: SnowflakeVisual;
 }
 
 export type SnowfallSurface = 'top' | 'bottom';

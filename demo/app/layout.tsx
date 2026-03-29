@@ -8,14 +8,14 @@ const display = Cormorant_Garamond({
   variable: "--font-display",
   subsets: ["latin"],
   display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300"],
 });
 
 const body = Space_Grotesk({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${display.variable} ${body.variable} antialiased frost-grain`}
+        className={`${display.variable} ${body.variable} antialiased`}
       >
         <SnowfallProvider>
           <Snowfall />

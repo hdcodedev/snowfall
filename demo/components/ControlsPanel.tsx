@@ -23,7 +23,7 @@ function Slider({
   const reactId = useId();
   const id = `slider-${label.toLowerCase().replace(/\s+/g, '-')}-${reactId}`;
   return (
-    <div className="group">
+    <div>
       <div className="flex items-baseline justify-between mb-2">
         <label htmlFor={id} className="font-body text-[10px] text-frost-muted tracking-[0.15em] uppercase">
           {label}
@@ -64,9 +64,9 @@ function Section({
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="w-full flex items-center justify-between py-3 group focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier"
+        className="w-full flex items-center justify-between py-3 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier"
       >
-        <span className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-muted group-hover:text-frost transition-colors duration-200">
+        <span className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-muted hover:text-frost transition-colors duration-200">
           {title}
         </span>
         <svg
@@ -99,7 +99,7 @@ export default function ControlsPanel() {
 
   return (
     <>
-      {/* Toggle — visible on mobile, hidden on desktop */}
+      {/* Mobile toggle */}
       <div className="fixed top-8 left-8 md:top-10 md:left-10 z-50 md:hidden">
           <button
             data-snowfall="top"
@@ -107,17 +107,16 @@ export default function ControlsPanel() {
             aria-label="Toggle physics controls"
             className={`
               w-10 h-10 flex items-center justify-center
-              border transition-all duration-300
+              border transition-colors duration-300
               focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier
               ${isOpen
                 ? 'border-glacier/30 bg-glacier/5'
                 : 'border-thin-ice bg-twilight/50 hover:bg-surface'
               }
             `}
-            style={{ borderRadius: 0 }}
           >
           <svg
-            className={`w-[14px] h-[14px] transition-all duration-200 ${
+            className={`w-[14px] h-[14px] transition-colors duration-200 ${
               isOpen ? 'text-glacier' : 'text-frost-dim'
             }`}
             fill="none"
@@ -143,24 +142,15 @@ export default function ControlsPanel() {
           border-t md:border-r border-thin-ice/30
           h-[60vh] md:h-full
           overflow-y-auto no-scrollbar
-        "
-        style={{ borderRadius: 0 }}
-        >
+        ">
           {/* Header */}
-          <div className="sticky top-0 bg-abyss/95 md:bg-abyss/80 backdrop-blur-xl border-b border-thin-ice/30 px-6 py-4 flex items-center justify-between">
+          <div className="sticky top-0 bg-abyss/95 md:bg-abyss/80 backdrop-blur-xl border-b border-thin-ice/30 px-6 py-4">
             <h3 className="font-body text-[10px] uppercase tracking-[0.25em] text-frost-muted">
               Snow Settings
             </h3>
-            <button
-              onClick={resetPhysics}
-              className="font-body text-[10px] uppercase tracking-[0.15em] text-frost-dim hover:text-glacier transition-colors duration-200 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier"
-            >
-              Restore Defaults
-            </button>
           </div>
 
           <div className="px-6 py-2">
-            {/* Flakes */}
             <Section title="Snowflakes" defaultOpen>
               <Slider
                 label="Max Count"
@@ -171,7 +161,7 @@ export default function ControlsPanel() {
                 onChange={(v) => updatePhysicsConfig({ MAX_FLAKES: v })}
               />
               <Slider
-                label="Smallest Flake"
+                label="Smallest"
                 value={physicsConfig.FLAKE_SIZE.MIN}
                 min={0.1}
                 max={3}
@@ -183,7 +173,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Largest Flake"
+                label="Largest"
                 value={physicsConfig.FLAKE_SIZE.MAX}
                 min={0.1}
                 max={5}
@@ -196,10 +186,9 @@ export default function ControlsPanel() {
               />
             </Section>
 
-            {/* Environment */}
-            <Section title="Environment" defaultOpen>
+            <Section title="Environment">
               <Slider
-                label="Wind Strength"
+                label="Wind"
                 value={physicsConfig.WIND_STRENGTH}
                 min={0}
                 max={3}
@@ -207,7 +196,7 @@ export default function ControlsPanel() {
                 onChange={(v) => updatePhysicsConfig({ WIND_STRENGTH: v })}
               />
               <Slider
-                label="Melting Speed"
+                label="Melting"
                 value={physicsConfig.MELT_SPEED * 10000}
                 min={0}
                 max={10}
@@ -225,10 +214,9 @@ export default function ControlsPanel() {
               />
             </Section>
 
-            {/* Accumulation */}
             <Section title="Accumulation">
               <Slider
-                label="Top Surfaces"
+                label="Top Rate"
                 value={physicsConfig.ACCUMULATION.TOP_RATE}
                 min={0}
                 max={10}
@@ -240,7 +228,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Bottom Surfaces"
+                label="Bottom Rate"
                 value={physicsConfig.ACCUMULATION.BOTTOM_RATE}
                 min={0}
                 max={10}
@@ -252,7 +240,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Side Surfaces"
+                label="Side Rate"
                 value={physicsConfig.ACCUMULATION.SIDE_RATE}
                 min={0}
                 max={5}
@@ -263,12 +251,8 @@ export default function ControlsPanel() {
                   })
                 }
               />
-            </Section>
-
-            {/* Depth */}
-            <Section title="Snow Depth">
               <Slider
-                label="Top Surfaces"
+                label="Top Depth"
                 value={physicsConfig.MAX_DEPTH.TOP}
                 min={0}
                 max={150}
@@ -281,7 +265,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Bottom Surfaces"
+                label="Bottom Depth"
                 value={physicsConfig.MAX_DEPTH.BOTTOM}
                 min={0}
                 max={100}
@@ -294,7 +278,7 @@ export default function ControlsPanel() {
                 }
               />
               <Slider
-                label="Side Surfaces"
+                label="Side Depth"
                 value={physicsConfig.MAX_DEPTH.SIDE}
                 min={0}
                 max={40}
@@ -307,6 +291,16 @@ export default function ControlsPanel() {
                 }
               />
             </Section>
+          </div>
+
+          {/* Reset */}
+          <div className="px-6 py-4 border-t border-thin-ice/30">
+            <button
+              onClick={resetPhysics}
+              className="font-body text-[10px] uppercase tracking-[0.15em] text-frost-dim hover:text-glacier transition-colors duration-200 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier"
+            >
+              Restore Defaults
+            </button>
           </div>
         </div>
       </div>
