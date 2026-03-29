@@ -124,8 +124,8 @@ export default function Snowfall() {
 
         const handleResize = () => {
             resizeCanvas(physicsConfigRef.current.MAX_RENDER_DPR);
-            accumulationRef.current.clear();
-            initAccumulationWrapper();
+            // Just mark rects dirty to recalculate — don't clear accumulation or re-scan DOM.
+            // The accumulation data is still valid after resize, only element positions changed.
             markRectsDirty();
         };
 
@@ -174,8 +174,8 @@ export default function Snowfall() {
                 pointerEvents: 'none',
                 zIndex: 9999,
                 opacity: isVisible ? 1 : 0,
-                transition: 'opacity 0.3s ease-in',
-                willChange: 'opacity',
+                transition: isVisible ? undefined : 'opacity 0.3s ease-in',
+                willChange: isVisible ? undefined : 'opacity',
             }}
             aria-hidden="true"
         />

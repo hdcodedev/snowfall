@@ -9,12 +9,21 @@ export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[
 
     ctx.globalAlpha = 1.0;
     ctx.fillStyle = '#FFFFFF';
+
+    // Use fillRect for small flakes (radius < 2px) — avoids expensive arc() computation.
+    // At these sizes a square pixel is visually identical to a circle.
     ctx.beginPath();
 
     for (let i = 0, len = flakes.length; i < len; i++) {
         const flake = flakes[i];
-        ctx.moveTo(flake.x + flake.radius, flake.y);
-        ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
+        if (flake.radius < 2) {
+            // Fast path: draw as rect (GPU-friendly, no trig needed)
+            ctx.rect(flake.x - flake.radius, flake.y - flake.radius, flake.radius * 2, flake.radius * 2);
+        } else {
+            // Large flakes use arc for smooth edges
+            ctx.moveTo(flake.x + flake.radius, flake.y);
+            ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
+        }
     }
 
     ctx.fill();
