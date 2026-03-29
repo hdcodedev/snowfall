@@ -2,7 +2,7 @@ import { Snowflake, ElementSurface } from './types';
 import { VAL_BOTTOM, TAU } from './constants';
 
 const ACC_FILL_STYLE = 'rgba(255, 255, 255, 0.95)';
-const ACC_SHADOW_COLOR = 'rgba(200, 230, 255, 0.6)';
+const ACC_SHADOW_FILL = 'rgba(200, 220, 245, 0.3)';
 const OPACITY_BUCKETS = [0.3, 0.5, 0.7, 0.9];
 
 
@@ -60,20 +60,16 @@ export const drawAccumulations = (
     scrollX: number,
     scrollY: number
 ) => {
-    ctx.fillStyle = ACC_FILL_STYLE;
-    ctx.shadowColor = ACC_SHADOW_COLOR;
-    ctx.shadowBlur = 4;
-    ctx.shadowOffsetY = -1;
-    // Explicitly reset alpha as we modified it in drawSnowflake
     ctx.globalAlpha = 1.0;
-
     ctx.beginPath();
+
+    let hasAnyPath = false;
 
     // Iterate over all accumulation surfaces to build the single path
     for (const item of elementRects) {
         const { rect, acc } = item;
 
-        if (!acc.heights.some(h => h > 0.1)) continue;
+        if (acc.maxHeight <= 0.1) continue;
 
         const isBottom = acc.type === VAL_BOTTOM;
         const baseY = isBottom ? rect.bottom - 1 : rect.top + 1;
@@ -118,13 +114,22 @@ export const drawAccumulations = (
         const startPx = worldLeft + startX;
         const startPy = worldBaseY + (acc.curveOffsets[startX] || 0);
         ctx.lineTo(startPx, startPy);
+        hasAnyPath = true;
     }
 
-    // Fill all accumulations in one pass to batch shadow rendering
-    ctx.fill();
+    if (!hasAnyPath) return;
 
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
+    // Shadow pass: offset fill with low-opacity tint for depth effect.
+    // Reuses the same path — avoids shadowBlur which is extremely expensive on Canvas 2D.
+    ctx.save();
+    ctx.translate(0, 1);
+    ctx.fillStyle = ACC_SHADOW_FILL;
+    ctx.fill();
+    ctx.restore();
+
+    // Main fill pass
+    ctx.fillStyle = ACC_FILL_STYLE;
+    ctx.fill();
 };
 
 export const drawSideAccumulations = (
@@ -133,12 +138,10 @@ export const drawSideAccumulations = (
     scrollX: number,
     scrollY: number
 ) => {
-    ctx.fillStyle = ACC_FILL_STYLE;
-    ctx.shadowColor = ACC_SHADOW_COLOR;
-    ctx.shadowBlur = 3;
     ctx.globalAlpha = 1.0;
-
     ctx.beginPath();
+
+    let hasAnyPath = false;
 
     const drawSide = (sideArray: number[], isLeft: boolean, multipliers: number[], rect: DOMRect, dx: number, dy: number) => {
         const baseX = isLeft ? rect.left : rect.right;
@@ -147,22 +150,24 @@ export const drawSideAccumulations = (
         const worldBaseX = baseX + dx;
         const worldTop = rect.top + dy;
         const worldBottom = rect.bottom + dy;
+        const dir = isLeft ? -1 : 1;
+        const lastIdx = sideArray.length - 1;
 
         ctx.moveTo(worldBaseX, worldTop);
 
         // Draw the uneven side profile
         for (let y = 0; y < sideArray.length; y += 2) {
             const width = sideArray[y] || 0;
-            const nextY = Math.min(y + 2, sideArray.length - 1);
+            const nextY = y + 2 < lastIdx ? y + 2 : lastIdx;
             const nextWidth = sideArray[nextY] || 0;
 
             const gravityMultiplier = multipliers[y] || 0;
 
             const py = worldTop + y;
-            const px = (isLeft ? worldBaseX - (width * gravityMultiplier) : worldBaseX + (width * gravityMultiplier));
+            const px = worldBaseX + (width * gravityMultiplier * dir);
             const ny = worldTop + nextY;
             const nGravityMultiplier = multipliers[nextY] || 0;
-            const nx = (isLeft ? worldBaseX - (nextWidth * nGravityMultiplier) : worldBaseX + (nextWidth * nGravityMultiplier));
+            const nx = worldBaseX + (nextWidth * nGravityMultiplier * dir);
 
             ctx.lineTo(px, py);
             ctx.lineTo(nx, ny);
@@ -183,11 +188,13 @@ export const drawSideAccumulations = (
 
         if (!hasLeftSnow && !hasRightSnow) continue;
 
-        if (hasLeftSnow) drawSide(acc.leftSide, true, acc.sideGravityMultipliers, rect, scrollX, scrollY);
-        if (hasRightSnow) drawSide(acc.rightSide, false, acc.sideGravityMultipliers, rect, scrollX, scrollY);
+        if (hasLeftSnow) { drawSide(acc.leftSide, true, acc.sideGravityMultipliers, rect, scrollX, scrollY); hasAnyPath = true; }
+        if (hasRightSnow) { drawSide(acc.rightSide, false, acc.sideGravityMultipliers, rect, scrollX, scrollY); hasAnyPath = true; }
     }
 
-    ctx.fill();
+    if (!hasAnyPath) return;
 
-    ctx.shadowBlur = 0;
+    // Single fill — side profiles are too thin for a 1px shadow offset to be visible
+    ctx.fillStyle = ACC_FILL_STYLE;
+    ctx.fill();
 };
