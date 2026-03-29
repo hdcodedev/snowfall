@@ -64,7 +64,7 @@ function Section({
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="w-full flex items-center justify-between py-3 group"
+        className="w-full flex items-center justify-between py-3 group focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier"
       >
         <span className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-muted group-hover:text-frost transition-colors duration-200">
           {title}
@@ -81,7 +81,14 @@ function Section({
           <path strokeLinecap="square" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {isOpen && <div className="pb-4 space-y-4">{children}</div>}
+      <div
+        className="grid transition-[grid-template-rows] duration-300 ease-out"
+        style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
+      >
+        <div className="overflow-hidden">
+          <div className="pb-4 space-y-4">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -100,6 +107,7 @@ export default function ControlsPanel() {
             className={`
               w-10 h-10 flex items-center justify-center
               border transition-all duration-300
+              focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier
               ${isOpen
                 ? 'border-glacier/30 bg-glacier/5'
                 : 'border-thin-ice bg-twilight/50 hover:bg-surface'
@@ -144,7 +152,7 @@ export default function ControlsPanel() {
             </h3>
             <button
               onClick={resetPhysics}
-              className="font-body text-[10px] uppercase tracking-[0.15em] text-frost-dim hover:text-glacier transition-colors duration-200"
+              className="font-body text-[10px] uppercase tracking-[0.15em] text-frost-dim hover:text-glacier transition-colors duration-200 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier"
             >
               Restore Defaults
             </button>

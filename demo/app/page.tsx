@@ -127,7 +127,7 @@ export default function Home() {
           <div className="animate-frost-rise delay-700 flex items-center gap-3 text-frost-dim">
             <span className="w-8 h-px bg-glacier-ghost" />
             <span className="font-body text-[10px] uppercase tracking-[0.25em]">
-              v{physicsConfig.MAX_FLAKES > 0 ? '1.0' : '—'}
+              v1.0
             </span>
           </div>
 
@@ -177,7 +177,7 @@ export default function Home() {
             <StatBlock value="2" label="Lines to Add" />
           </div>
           <div className="w-px h-10 bg-thin-ice" />
-            <StatBlock value="1000+" label="Flakes Default" />
+          <StatBlock value="1000+" label="Flakes Default" />
         </div>
       </section>
 

@@ -37,157 +37,171 @@ export default function DebugPanel({ defaultOpen = true }: { defaultOpen?: boole
 
     if (!debugMode) return null;
 
+    const panelStyle: React.CSSProperties = {
+        position: 'fixed',
+        bottom: '80px',
+        left: '24px',
+        backgroundColor: 'rgba(15, 23, 42, 0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        color: '#cbd5e1',
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontSize: '12px',
+        lineHeight: '1.5',
+        padding: isMinimized ? '12px' : '20px',
+        borderRadius: '12px',
+        zIndex: 10000,
+        minWidth: isMinimized ? 'auto' : '300px',
+        maxWidth: '100%',
+        border: '1px solid rgba(148, 163, 184, 0.12)',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
+        transition: 'padding 0.2s ease',
+    };
+
+    const sectionLabelStyle: React.CSSProperties = {
+        color: '#94a3b8',
+        marginBottom: '8px',
+        fontSize: '10px',
+        fontWeight: '600',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+    };
+
+    const rowStyle: React.CSSProperties = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '4px',
+    };
+
+    const valueStyle: React.CSSProperties = {
+        fontFamily: 'monospace',
+        fontVariantNumeric: 'tabular-nums',
+    };
+
+    const buttonBaseStyle: React.CSSProperties = {
+        cursor: 'pointer',
+        width: '24px',
+        height: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '6px',
+        fontSize: '10px',
+        transition: 'background 0.15s ease, color 0.15s ease',
+    };
+
     return (
-        <div
-            data-snowfall="top"
-            style={{
-                position: 'fixed',
-                bottom: '80px',
-                left: '24px',
-                backgroundColor: 'rgba(15, 23, 42, 0.75)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                color: '#e2e8f0',
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                fontSize: '12px',
-                padding: isMinimized ? '12px' : '20px',
-                borderRadius: '16px',
-                zIndex: 10000,
-                minWidth: isMinimized ? 'auto' : '300px',
-                maxWidth: '100%',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
-                transition: 'all 0.2s ease',
-            }}>
+        <div data-snowfall="top" style={panelStyle}>
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: isMinimized ? 0 : '16px',
-                gap: '16px'
+                gap: '16px',
             }}>
-                <div style={{ fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px' }}>❄️</span>
-                    <span style={{
-                        background: 'linear-gradient(to right, #60a5fa, #22d3ee)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        fontWeight: '700'
-                    }}>DEBUG</span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ fontWeight: '600', color: '#e2e8f0', fontSize: '11px', letterSpacing: '0.05em' }}>
+                    DEBUG
+                </span>
+                <div style={{ display: 'flex', gap: '6px' }}>
                     <button
                         onClick={() => setIsMinimized(!isMinimized)}
+                        aria-label={isMinimized ? 'Expand debug panel' : 'Minimize debug panel'}
                         style={{
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            cursor: 'pointer',
-                            width: '24px',
-                            height: '24px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '6px',
-                            fontSize: '10px',
+                            ...buttonBaseStyle,
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            color: '#94a3b8',
                         }}
                     >
-                        {isMinimized ? '▲' : '▼'}
+                        {isMinimized ? '+' : '−'}
                     </button>
                     <button
                         onClick={toggleDebug}
+                        aria-label="Close debug panel"
                         style={{
-                            background: 'rgba(239, 68, 68, 0.15)',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            ...buttonBaseStyle,
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.15)',
                             color: '#f87171',
-                            cursor: 'pointer',
-                            width: '24px',
-                            height: '24px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '6px',
-                            fontSize: '12px',
                         }}
                     >
-                        ✕
+                        ×
                     </button>
                 </div>
             </div>
 
             {!isMinimized && metrics && (
                 <>
-                    <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div style={{ color: '#94a3b8', marginBottom: '8px', fontSize: '11px', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                            Performance
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
+                        <div style={sectionLabelStyle}>Performance</div>
+                        <div style={rowStyle}>
                             <span>FPS</span>
-                            <span style={{ fontWeight: 'bold', color: metrics.fps < 30 ? '#f87171' : metrics.fps < 50 ? '#facc15' : '#4ade80' }}>
+                            <span style={{
+                                ...valueStyle,
+                                fontWeight: '600',
+                                color: metrics.fps < 30 ? '#f87171' : metrics.fps < 50 ? '#facc15' : '#4ade80',
+                            }}>
                                 {metrics.fps.toFixed(1)}
                             </span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <div style={rowStyle}>
                             <span>Frame Time</span>
-                            <span style={{ fontFamily: 'monospace' }}>{metrics.frameTime.toFixed(2)}ms</span>
+                            <span style={valueStyle}>{metrics.frameTime.toFixed(2)}ms</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: metrics.rafGap && metrics.rafGap > 20 ? '#fbbf24' : 'inherit' }}>Frame Gap</span>
-                            <span style={{ fontFamily: 'monospace' }}>{metrics.rafGap?.toFixed(1) || 0}ms</span>
+                        <div style={rowStyle}>
+                            <span style={{ color: metrics.rafGap > 20 ? '#fbbf24' : 'inherit' }}>Frame Gap</span>
+                            <span style={valueStyle}>{metrics.rafGap.toFixed(1)}ms</span>
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                        <div style={{ color: '#94a3b8', marginBottom: '8px', fontSize: '11px', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                            Detailed Timings
-                        </div>
+                    <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
+                        <div style={sectionLabelStyle}>Detailed Timings</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Canvas Clear</span> <span style={{ fontFamily: 'monospace' }}>{metrics.clearTime?.toFixed(2) || 0}ms</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Physics Step</span> <span style={{ fontFamily: 'monospace' }}>{metrics.physicsTime?.toFixed(2) || 0}ms</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Rendering</span> <span style={{ fontFamily: 'monospace' }}>{metrics.drawTime?.toFixed(2) || 0}ms</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>DOM Scan</span> <span style={{ fontFamily: 'monospace' }}>{metrics.scanTime.toFixed(2)}ms</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gridColumn: 'span 2' }}><span>Element Tracking</span> <span style={{ fontFamily: 'monospace' }}>{metrics.rectUpdateTime.toFixed(2)}ms</span></div>
+                            <div style={rowStyle}><span>Canvas Clear</span> <span style={valueStyle}>{metrics.clearTime.toFixed(2)}ms</span></div>
+                            <div style={rowStyle}><span>Physics Step</span> <span style={valueStyle}>{metrics.physicsTime.toFixed(2)}ms</span></div>
+                            <div style={rowStyle}><span>Rendering</span> <span style={valueStyle}>{metrics.drawTime.toFixed(2)}ms</span></div>
+                            <div style={rowStyle}><span>DOM Scan</span> <span style={valueStyle}>{metrics.scanTime.toFixed(2)}ms</span></div>
+                            <div style={{ ...rowStyle, gridColumn: 'span 2' }}><span>Element Tracking</span> <span style={valueStyle}>{metrics.rectUpdateTime.toFixed(2)}ms</span></div>
                         </div>
                     </div>
 
                     <div style={{ marginBottom: '16px' }}>
-                        <div style={{ color: '#94a3b8', marginBottom: '8px', fontSize: '11px', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                            Counts
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <div style={sectionLabelStyle}>Counts</div>
+                        <div style={rowStyle}>
                             <span>Snowflakes</span>
-                            <span style={{ fontFamily: 'monospace' }}>{metrics.flakeCount} / {metrics.maxFlakes}</span>
+                            <span style={valueStyle}>{metrics.flakeCount} / {metrics.maxFlakes}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ ...rowStyle, marginBottom: 0 }}>
                             <span>Surfaces</span>
-                            <span style={{ fontFamily: 'monospace' }}>{metrics.surfaceCount}</span>
+                            <span style={valueStyle}>{metrics.surfaceCount}</span>
                         </div>
                     </div>
 
                     <button
                         onClick={copyToClipboard}
+                        aria-label="Copy metrics to clipboard"
                         style={{
                             width: '100%',
-                            padding: '10px',
-                            background: copied ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                            border: copied ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
-                            color: copied ? '#4ade80' : '#fff',
+                            padding: '8px',
+                            background: copied ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                            border: copied ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(148, 163, 184, 0.1)',
+                            color: copied ? '#4ade80' : '#94a3b8',
                             cursor: 'pointer',
-                            borderRadius: '8px',
+                            borderRadius: '6px',
                             fontSize: '11px',
-                            fontWeight: '600',
-                            transition: 'all 0.2s',
+                            fontWeight: '500',
+                            transition: 'all 0.15s ease',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '6px'
+                            gap: '6px',
                         }}
                     >
-                        {copied ? '✓ Copied' : 'Copy Metrics'}
+                        {copied ? 'Copied' : 'Copy Metrics'}
                     </button>
 
                     <div style={{ marginTop: '12px', fontSize: '10px', color: '#64748b', textAlign: 'center' }}>
-                        Press Shift+D to toggle
+                        Shift+D to toggle
                     </div>
                 </>
             )}

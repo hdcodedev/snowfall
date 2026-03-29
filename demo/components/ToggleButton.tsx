@@ -13,6 +13,8 @@ export default function ToggleButton() {
         className={`
           group relative w-10 h-10 flex items-center justify-center
           border transition-all duration-300
+          active:scale-95
+          focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier
           ${isEnabled
             ? 'border-glacier/30 bg-glacier/5 hover:bg-glacier/10'
             : 'border-thin-ice bg-twilight/50 hover:bg-surface'

@@ -140,7 +140,7 @@ body {
 }
 
 .animate-frost-fade {
-  animation: frost-fade 0.8s ease-out both;
+  animation: frost-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-frost-scale {
@@ -372,5 +372,9 @@ input[type="range"]::-moz-range-thumb:hover {
   .animate-shimmer,
   .animate-aurora {
     animation: none;
+  }
+
+  .aurora-glow {
+    opacity: 0.06;
   }
 }
