@@ -7,8 +7,6 @@
   --color-twilight: oklch(0.07 0.015 265);
   --color-abyss: oklch(0.05 0.01 265);
   --color-surface: oklch(0.12 0.025 265);
-  --color-surface-hover: oklch(0.16 0.03 265);
-  --color-elevated: oklch(0.18 0.03 265);
 
   /* ── Ice Whites ── */
   --color-frost: oklch(0.92 0.015 260);
@@ -19,21 +17,14 @@
   --color-glacier: oklch(0.72 0.12 240);
   --color-glacier-bright: oklch(0.82 0.14 245);
   --color-glacier-dim: oklch(0.55 0.08 240);
-  --color-glacier-ghost: oklch(0.30 0.05 240);
 
   /* ── Copper Warmth ── */
   --color-copper: oklch(0.62 0.10 55);
-  --color-copper-bright: oklch(0.72 0.12 55);
   --color-copper-dim: oklch(0.50 0.08 55);
-
-  /* ── Frost Lavender ── */
-  --color-lavender: oklch(0.70 0.06 300);
-  --color-lavender-dim: oklch(0.55 0.04 300);
 
   /* ── Borders ── */
   --color-thin-ice: oklch(0.22 0.03 265);
   --color-crack: oklch(0.30 0.04 265);
-  --color-shimmer: oklch(0.35 0.05 260);
 
   /* ── Typography ── */
   --font-display: 'Cormorant Garamond', serif;
@@ -51,87 +42,27 @@ body {
   font-family: var(--font-body);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ENTRANCE ANIMATIONS — staggered, exponential easing
-   ═══════════════════════════════════════════════════════════════ */
+/* ── Entrance Animations ── */
 
 @keyframes frost-rise {
   from {
     opacity: 0;
     transform: translateY(32px);
-    filter: blur(4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
-}
-
-@keyframes frost-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 @keyframes frost-scale {
   from {
     opacity: 0;
-    transform: scale(0.92);
-    filter: blur(2px);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
     transform: scale(1);
-    filter: blur(0);
-  }
-}
-
-@keyframes crystal-line {
-  from {
-    transform: scaleX(0);
-    opacity: 0;
-  }
-  to {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-}
-
-@keyframes drift-left {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes drift-right {
-  from {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes shimmer-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
-}
-
-@keyframes aurora-breathe {
-  0%, 100% {
-    opacity: 0.04;
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    opacity: 0.08;
-    transform: scale(1.05) rotate(2deg);
   }
 }
 
@@ -139,119 +70,28 @@ body {
   animation: frost-rise 1s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.animate-frost-fade {
-  animation: frost-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 .animate-frost-scale {
   animation: frost-scale 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.animate-crystal-line {
-  animation: crystal-line 1.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  transform-origin: center;
-}
-
-.animate-drift-left {
-  animation: drift-left 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-drift-right {
-  animation: drift-right 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-shimmer {
-  animation: shimmer-pulse 4s ease-in-out infinite;
-}
-
-.animate-aurora {
-  animation: aurora-breathe 8s ease-in-out infinite;
-}
-
 /* ── Stagger Delays ── */
-.delay-50 { animation-delay: 50ms; }
-.delay-100 { animation-delay: 100ms; }
-.delay-150 { animation-delay: 150ms; }
 .delay-200 { animation-delay: 200ms; }
-.delay-250 { animation-delay: 250ms; }
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
-.delay-600 { animation-delay: 600ms; }
-.delay-700 { animation-delay: 700ms; }
-.delay-800 { animation-delay: 800ms; }
-.delay-1000 { animation-delay: 1000ms; }
-.delay-1200 { animation-delay: 1200ms; }
-.delay-1400 { animation-delay: 1400ms; }
-.delay-1600 { animation-delay: 1600ms; }
 
-/* ═══════════════════════════════════════════════════════════════
-   DECORATIVE ELEMENTS
-   ═══════════════════════════════════════════════════════════════ */
+/* ── Frosted surface ── */
 
-/* Crystalline divider — sharp, geometric */
-.crystal-divider {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in oklch, var(--color-glacier) 15%, transparent) 15%,
-    color-mix(in oklch, var(--color-glacier) 40%, transparent) 30%,
-    color-mix(in oklch, var(--color-glacier-bright) 50%, transparent) 50%,
-    color-mix(in oklch, var(--color-glacier) 40%, transparent) 70%,
-    color-mix(in oklch, var(--color-glacier) 15%, transparent) 85%,
-    transparent 100%
-  );
-}
-
-/* Frost grain overlay — subtle, icy texture */
-.frost-grain::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 100;
-  opacity: 0.025;
-  background-image:
-    repeating-radial-gradient(circle at 17% 32%, oklch(1 0 0) 0, transparent 1px),
-    repeating-radial-gradient(circle at 62% 78%, oklch(1 0 0) 0, transparent 1px),
-    repeating-radial-gradient(circle at 89% 14%, oklch(1 0 0) 0, transparent 1px);
-  background-size: 3px 3px, 5px 5px, 7px 7px;
-}
-
-/* Aurora glow — ambient background effect */
-.aurora-glow {
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse at center,
-    color-mix(in oklch, var(--color-glacier) 12%, transparent) 0%,
-    color-mix(in oklch, var(--color-lavender) 6%, transparent) 40%,
-    transparent 70%
-  );
-  filter: blur(80px);
-  pointer-events: none;
-}
-
-/* Frosted surface for cards */
 .frost-surface {
   background: color-mix(in oklch, var(--color-surface) 80%, transparent);
   border: 1px solid var(--color-thin-ice);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
-/* Frost edge shimmer on hover */
 .frost-surface:hover {
   border-color: var(--color-crack);
-  background: color-mix(in oklch, var(--color-surface-hover) 80%, transparent);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SELECTION, SCROLLBAR, ACCESSIBILITY
-   ═══════════════════════════════════════════════════════════════ */
+/* ── Selection, Scrollbar, Accessibility ── */
 
 ::selection {
   background: color-mix(in oklch, var(--color-glacier) 25%, transparent);
@@ -271,7 +111,6 @@ html {
   scrollbar-width: none;
 }
 
-/* Custom scrollbar for non-hidden areas */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -289,9 +128,7 @@ html {
   background: var(--color-crack);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RANGE SLIDER — crystalline style
-   ═══════════════════════════════════════════════════════════════ */
+/* ── Range Slider ── */
 
 input[type="range"] {
   -webkit-appearance: none;
@@ -313,13 +150,11 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--color-glacier);
   border: 2px solid var(--color-twilight);
   margin-top: -5.5px;
-  box-shadow: 0 0 8px color-mix(in oklch, var(--color-glacier) 30%, transparent);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.3);
-  box-shadow: 0 0 16px color-mix(in oklch, var(--color-glacier) 50%, transparent);
 }
 
 input[type="range"]::-moz-range-track {
@@ -333,18 +168,14 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 50%;
   background: var(--color-glacier);
   border: 2px solid var(--color-twilight);
-  box-shadow: 0 0 8px color-mix(in oklch, var(--color-glacier) 30%, transparent);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.3);
-  box-shadow: 0 0 16px color-mix(in oklch, var(--color-glacier) 50%, transparent);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ACCESSIBILITY
-   ═══════════════════════════════════════════════════════════════ */
+/* ── Accessibility ── */
 
 :focus-visible {
   outline: 1px solid var(--color-glacier);
@@ -352,29 +183,13 @@ input[type="range"]::-moz-range-thumb:hover {
   border-radius: 2px;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE UTILITIES
-   ═══════════════════════════════════════════════════════════════ */
+/* ── Reduced Motion ── */
 
 @media (prefers-reduced-motion: reduce) {
   .animate-frost-rise,
-  .animate-frost-fade,
-  .animate-frost-scale,
-  .animate-crystal-line,
-  .animate-drift-left,
-  .animate-drift-right {
+  .animate-frost-scale {
     animation: none;
     opacity: 1;
     transform: none;
-    filter: none;
-  }
-
-  .animate-shimmer,
-  .animate-aurora {
-    animation: none;
-  }
-
-  .aurora-glow {
-    opacity: 0.06;
   }
 }

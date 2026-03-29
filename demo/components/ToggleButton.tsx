@@ -58,13 +58,6 @@ export default function ToggleButton() {
           )}
         </svg>
 
-        {/* Active glow */}
-        {isEnabled && (
-          <div
-            className="absolute inset-0 bg-glacier/5 animate-shimmer"
-            style={{ borderRadius: 0 }}
-          />
-        )}
       </button>
     </div>
   );

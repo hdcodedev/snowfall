@@ -51,6 +51,15 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
     const viewportRef = useRef({ width: 0, height: 0 });
     // Cache 2D context — getContext('2d') is a DOM API call with overhead
     const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+    // Precomputed inverse DPR for multiplication instead of division per frame
+    const invDprRef = useRef(1);
+    // Store params in ref so animate doesn't need params as a dependency
+    const paramsRef = useRef(params);
+
+    // Sync params ref outside of render (via effect) to satisfy lint rules
+    useEffect(() => {
+        paramsRef.current = params;
+    });
 
     const animate = useCallback((currentTime: number) => {
         const {
@@ -65,7 +74,7 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             getCurrentFps,
             buildMetrics,
             setMetricsRef,
-        } = params;
+        } = paramsRef.current;
 
         const canvas = canvasRef.current;
         if (!canvas) {
@@ -89,11 +98,8 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
         const deltaTime = Math.min(currentTime - lastTimeRef.current, 50);
 
-        // Single performance.now() at frame start — derive all sub-timings from deltas
-        const frameStart = performance.now();
-        updateFps(frameStart);
-
-        // Track detailed performance metrics
+        // Track FPS and RAF gap from the RAF timestamp (no extra performance.now() call)
+        updateFps(currentTime);
         metricsRef.current.rafGap = currentTime - lastTimeRef.current;
 
         lastTimeRef.current = currentTime;
@@ -102,8 +108,9 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
         // Reset transform to clear the entire viewport-sized canvas
         const dpr = dprRef.current;
+        const invDpr = invDprRef.current;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+        ctx.clearRect(0, 0, canvas.width * invDpr, canvas.height * invDpr);
 
         // Translate the context to Simulate Scrolling
         const scrollX = window.scrollX;
@@ -117,17 +124,12 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         const viewportWidth = viewportRef.current.width;
         const viewportHeight = viewportRef.current.height;
 
-        // Timing checkpoint: clear phase complete
-        const clearEnd = performance.now();
-        metricsRef.current.clearTime = clearEnd - frameStart;
-
         const snowflakes = snowflakesRef.current;
 
         // Only update element rects when dirty (resize, element added/removed)
         // For fixed/sticky elements, getBoundingClientRect values don't change on scroll
         if (dirtyRectsRef.current) {
             elementRectsRef.current = getElementRects(accumulationRef.current);
-            metricsRef.current.rectUpdateTime = performance.now() - clearEnd;
             dirtyRectsRef.current = false;
         }
 
@@ -145,8 +147,6 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             scrollY,
             frameIndex
         );
-        const physicsEnd = performance.now();
-        metricsRef.current.physicsTime = physicsEnd - clearEnd;
 
         // Draw Snowflakes (batched for performance)
         drawSnowflakes(ctx, snowflakes);
@@ -164,7 +164,7 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
 
             if (shouldSpawn) {
                 const isBackground = Math.random() < 0.4;
-                snowflakes.push(createSnowflake(worldWidth, physicsConfigRef.current, isBackground));
+                snowflakes.push(createSnowflake(worldWidth, physicsConfigRef.current, isBackground, scrollY));
             }
         }
 
@@ -190,11 +190,6 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             drawSideAccumulations(ctx, visibleRects, scrollX, scrollY);
         }
 
-        // Single performance.now() at frame end — derive drawTime from total minus prior phases
-        const frameEnd = performance.now();
-        metricsRef.current.drawTime = frameEnd - physicsEnd;
-        metricsRef.current.frameTime = frameEnd - frameStart;
-
         // Update metrics every 500ms
         if (currentTime - lastMetricsUpdateRef.current > 500) {
             setMetricsRef.current(buildMetrics(
@@ -206,7 +201,7 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         }
 
         animationIdRef.current = requestAnimationFrame(animateRef.current);
-    }, [params]);
+    }, []);
 
     useEffect(() => {
         animateRef.current = animate;
@@ -230,6 +225,8 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         worldSizeRef.current.height = document.documentElement.scrollHeight;
         viewportRef.current.width = window.innerWidth;
         viewportRef.current.height = window.innerHeight;
+        // Precompute inverse DPR for multiplication in the hot path
+        invDprRef.current = 1 / (paramsRef.current.dprRef.current || 1);
     }, []);
 
     return {

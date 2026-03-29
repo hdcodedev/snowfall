@@ -7,6 +7,44 @@ const ACC_FILL_STYLE = 'rgba(255, 255, 255, 0.95)';
 // At 0.5px, the cache re-renders roughly every 10-15 frames during active accumulation.
 const CACHE_RENDER_THRESHOLD = 0.5;
 
+const PIXEL_STEP = 3;
+
+/** Draw a single side accumulation path into the canvas context. */
+const drawSide = (
+    ctx: CanvasRenderingContext2D,
+    sideArray: Float32Array,
+    isLeft: boolean,
+    multipliers: Float32Array,
+    rect: DOMRect,
+    dx: number,
+    dy: number,
+    bucketSize: number
+): void => {
+    const baseX = isLeft ? rect.left : rect.right;
+    const worldBaseX = baseX + dx;
+    const worldTop = rect.top + dy;
+    const worldBottom = rect.bottom + dy;
+    const dir = isLeft ? -1 : 1;
+    const pixelHeight = sideArray.length * bucketSize;
+
+    ctx.moveTo(worldBaseX, worldTop);
+
+    for (let py = 0; py < pixelHeight; py += PIXEL_STEP) {
+        const width = interpolateBucket(sideArray, py, bucketSize);
+        const gm = interpolateBucket(multipliers, py, bucketSize);
+        ctx.lineTo(worldBaseX + (width * gm * dir), worldTop + py);
+    }
+
+    const lastPy = pixelHeight - 1;
+    if ((lastPy % PIXEL_STEP) !== 0) {
+        const width = interpolateBucket(sideArray, lastPy, bucketSize);
+        const gm = interpolateBucket(multipliers, lastPy, bucketSize);
+        ctx.lineTo(worldBaseX + (width * gm * dir), worldTop + lastPy);
+    }
+
+    ctx.lineTo(worldBaseX, worldBottom);
+};
+
 
 export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[]) => {
     if (flakes.length === 0) return;
@@ -18,11 +56,12 @@ export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[
 
     for (let i = 0, len = flakes.length; i < len; i++) {
         const flake = flakes[i];
-        if (flake.radius < 2) {
-            ctx.rect(flake.x - flake.radius, flake.y - flake.radius, flake.radius * 2, flake.radius * 2);
+        const radius = flake.visual.radius;
+        if (radius < 2) {
+            ctx.rect(flake.x - radius, flake.y - radius, radius * 2, radius * 2);
         } else {
-            ctx.moveTo(flake.x + flake.radius, flake.y);
-            ctx.arc(flake.x, flake.y, flake.radius, 0, TAU);
+            ctx.moveTo(flake.x + radius, flake.y);
+            ctx.arc(flake.x, flake.y, radius, 0, TAU);
         }
     }
 
@@ -92,10 +131,9 @@ const renderAccumulationCache = (
 
     // Draw the snow surface path
     ctx.beginPath();
-    const pixelStep = 3;
     let first = true;
 
-    for (let px = 0; px < pixelWidth; px += pixelStep) {
+    for (let px = 0; px < pixelWidth; px += PIXEL_STEP) {
         const height = interpolateBucket(acc.heights, px, bucketSize);
         const curveOffset = interpolateBucket(acc.curveOffsets, px, bucketSize);
         const y = elementEdgeY - height + curveOffset;
@@ -108,14 +146,14 @@ const renderAccumulationCache = (
     }
 
     const lastPx = pixelWidth - 1;
-    if ((lastPx % pixelStep) !== 0) {
+    if ((lastPx % PIXEL_STEP) !== 0) {
         const height = interpolateBucket(acc.heights, lastPx, bucketSize);
         const curveOffset = interpolateBucket(acc.curveOffsets, lastPx, bucketSize);
         ctx.lineTo(lastPx, elementEdgeY - height + curveOffset);
     }
 
     // Close at element edge
-    for (let px = pixelWidth - 1; px >= 0; px -= pixelStep) {
+    for (let px = pixelWidth - 1; px >= 0; px -= PIXEL_STEP) {
         const curveOffset = interpolateBucket(acc.curveOffsets, px, bucketSize);
         ctx.lineTo(px, elementEdgeY + curveOffset);
     }
@@ -182,33 +220,6 @@ export const drawSideAccumulations = (
 
     let hasAnyPath = false;
 
-    const drawSide = (sideArray: Float32Array, isLeft: boolean, multipliers: Float32Array, rect: DOMRect, dx: number, dy: number, bucketSize: number) => {
-        const baseX = isLeft ? rect.left : rect.right;
-        const worldBaseX = baseX + dx;
-        const worldTop = rect.top + dy;
-        const worldBottom = rect.bottom + dy;
-        const dir = isLeft ? -1 : 1;
-        const pixelHeight = sideArray.length * bucketSize;
-
-        ctx.moveTo(worldBaseX, worldTop);
-
-        const pixelStep = 3;
-        for (let py = 0; py < pixelHeight; py += pixelStep) {
-            const width = interpolateBucket(sideArray, py, bucketSize);
-            const gm = interpolateBucket(multipliers, py, bucketSize);
-            ctx.lineTo(worldBaseX + (width * gm * dir), worldTop + py);
-        }
-
-        const lastPy = pixelHeight - 1;
-        if ((lastPy % pixelStep) !== 0) {
-            const width = interpolateBucket(sideArray, lastPy, bucketSize);
-            const gm = interpolateBucket(multipliers, lastPy, bucketSize);
-            ctx.lineTo(worldBaseX + (width * gm * dir), worldTop + lastPy);
-        }
-
-        ctx.lineTo(worldBaseX, worldBottom);
-    };
-
     for (const item of elementRects) {
         const { rect, acc } = item;
 
@@ -219,8 +230,8 @@ export const drawSideAccumulations = (
 
         if (!hasLeftSnow && !hasRightSnow) continue;
 
-        if (hasLeftSnow) { drawSide(acc.leftSide, true, acc.sideGravityMultipliers, rect, scrollX, scrollY, acc.bucketSize); hasAnyPath = true; }
-        if (hasRightSnow) { drawSide(acc.rightSide, false, acc.sideGravityMultipliers, rect, scrollX, scrollY, acc.bucketSize); hasAnyPath = true; }
+        if (hasLeftSnow) { drawSide(ctx, acc.leftSide, true, acc.sideGravityMultipliers, rect, scrollX, scrollY, acc.bucketSize); hasAnyPath = true; }
+        if (hasRightSnow) { drawSide(ctx, acc.rightSide, false, acc.sideGravityMultipliers, rect, scrollX, scrollY, acc.bucketSize); hasAnyPath = true; }
     }
 
     if (!hasAnyPath) return;

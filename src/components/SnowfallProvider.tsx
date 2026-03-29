@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
 
 export interface PhysicsConfig {
     MAX_FLAKES: number;
@@ -86,15 +86,15 @@ export function SnowfallProvider({ children, initialDebug = false, initialEnable
     const [debugMode, setDebugMode] = useState(initialDebug);
     const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
 
-    const toggleSnow = () => {
+    const toggleSnow = useCallback(() => {
         setIsEnabled((prev) => !prev);
-    };
+    }, []);
 
-    const toggleDebug = () => {
+    const toggleDebug = useCallback(() => {
         setDebugMode((prev) => !prev);
-    };
+    }, []);
 
-    const updatePhysicsConfig = (config: Partial<PhysicsConfig>) => {
+    const updatePhysicsConfig = useCallback((config: Partial<PhysicsConfig>) => {
         setPhysicsConfig((prev) => ({
             ...prev,
             ...config,
@@ -111,24 +111,26 @@ export function SnowfallProvider({ children, initialDebug = false, initialEnable
                 ...(config.FLAKE_SIZE || {}),
             },
         }));
-    };
+    }, []);
 
-    const resetPhysics = () => {
+    const resetPhysics = useCallback(() => {
         setPhysicsConfig(DEFAULT_PHYSICS);
-    };
+    }, []);
+
+    const contextValue = useMemo(() => ({
+        isEnabled,
+        toggleSnow,
+        physicsConfig,
+        updatePhysicsConfig,
+        resetPhysics,
+        debugMode,
+        toggleDebug,
+        metrics,
+        setMetrics,
+    }), [isEnabled, toggleSnow, physicsConfig, updatePhysicsConfig, resetPhysics, debugMode, toggleDebug, metrics, setMetrics]);
 
     return (
-        <SnowfallContext.Provider value={{
-            isEnabled,
-            toggleSnow,
-            physicsConfig,
-            updatePhysicsConfig,
-            resetPhysics,
-            debugMode,
-            toggleDebug,
-            metrics,
-            setMetrics,
-        }}>
+        <SnowfallContext.Provider value={contextValue}>
             {children}
         </SnowfallContext.Provider>
     );
