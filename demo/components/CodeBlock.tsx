@@ -16,8 +16,8 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
+    } catch {
+      // Clipboard API may be unavailable in some contexts
     }
   };
 
@@ -120,6 +120,7 @@ export default function CodeBlock({ code, className = '', language = 'bash' }: C
           onClick={handleCopy}
           className={`
             font-body text-[10px] uppercase tracking-[0.15em] transition-all duration-200 cursor-pointer
+            focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-glacier
             ${copied
               ? 'text-glacier'
               : 'text-frost-dim hover:text-frost-muted'

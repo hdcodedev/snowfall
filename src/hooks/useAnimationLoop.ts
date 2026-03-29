@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { Snowflake, SnowAccumulation } from '../core/types';
-import { PhysicsConfig } from '../components/SnowfallProvider';
+import { PhysicsConfig, PerformanceMetrics } from '../components/SnowfallProvider';
 import { getElementRects, ElementSurface } from '../core/dom';
 import { createSnowflake, meltAndSmoothAccumulation, updateSnowflakes } from '../core/physics';
 import { drawAccumulations, drawSideAccumulations, drawSnowflakes } from '../core/draw';
@@ -27,8 +27,8 @@ interface UseAnimationLoopParams {
     };
     updateFps: (now: number) => void;
     getCurrentFps: () => number;
-    buildMetrics: (surfaceCount: number, flakeCount: number, maxFlakes: number) => any;
-    setMetricsRef: { current: (metrics: any) => void };
+    buildMetrics: (surfaceCount: number, flakeCount: number, maxFlakes: number) => PerformanceMetrics;
+    setMetricsRef: { current: (metrics: PerformanceMetrics) => void };
 }
 
 /**

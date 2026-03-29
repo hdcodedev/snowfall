@@ -165,22 +165,19 @@ export default function Snowfall() {
     if (!isMounted) return null;
 
     return (
-        <>
-            <canvas
-                ref={canvasRef}
-                style={{
-                    position: 'fixed', // FIXED position to eliminate scroll jitter
-                    top: 0,
-                    left: 0,
-                    pointerEvents: 'none',
-                    zIndex: 9999,
-                    opacity: isVisible ? 1 : 0,
-                    transition: 'opacity 0.3s ease-in',
-                    willChange: 'opacity',
-                }}
-                aria-hidden="true"
-            />
-
-        </>
+        <canvas
+            ref={canvasRef}
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                pointerEvents: 'none',
+                zIndex: 9999,
+                opacity: isVisible ? 1 : 0,
+                transition: 'opacity 0.3s ease-in',
+                willChange: 'opacity',
+            }}
+            aria-hidden="true"
+        />
     );
 }
