@@ -5,8 +5,7 @@
 
 A realistic snowfall effect for React with physics-based accumulation on surfaces. Features melting, wind, and smart surface detection.
 
-![ScreenRecording2025-12-23at00 07 30-ezgif com-optimize](https://github.com/user-attachments/assets/49c4a537-7f04-4043-806e-21478f419dd7)
-
+<img width="1391" height="843" alt="Screenshot 2026-03-29 at 19 18 18" src="https://github.com/user-attachments/assets/b7a420c6-0fb2-4255-afec-29e60444d198" />
 
 
 ## Features
