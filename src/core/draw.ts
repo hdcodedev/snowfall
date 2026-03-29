@@ -2,7 +2,6 @@ import { Snowflake, ElementSurface } from './types';
 import { VAL_BOTTOM, TAU } from './constants';
 
 const ACC_FILL_STYLE = 'rgba(255, 255, 255, 0.95)';
-const ACC_SHADOW_FILL = 'rgba(200, 220, 245, 0.3)';
 
 
 export const drawSnowflakes = (ctx: CanvasRenderingContext2D, flakes: Snowflake[]) => {
@@ -86,14 +85,6 @@ export const drawAccumulations = (
 
     if (!hasAnyPath) return;
 
-    // Shadow pass: offset fill with low-opacity tint for depth effect.
-    // Reuses the same path — avoids shadowBlur which is extremely expensive on Canvas 2D.
-    ctx.translate(0, 1);
-    ctx.fillStyle = ACC_SHADOW_FILL;
-    ctx.fill();
-
-    // Undo shadow offset for main fill — avoids save/restore overhead
-    ctx.translate(0, -1);
     ctx.fillStyle = ACC_FILL_STYLE;
     ctx.fill();
 };
