@@ -132,7 +132,7 @@ export default function DebugPanel({ defaultOpen = true }: { defaultOpen?: boole
                             <span style={{ fontFamily: 'monospace' }}>{metrics.frameTime.toFixed(2)}ms</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: metrics.rafGap && metrics.rafGap > 20 ? '#fbbf24' : 'inherit' }}>rAF Gap</span>
+                            <span style={{ color: metrics.rafGap && metrics.rafGap > 20 ? '#fbbf24' : 'inherit' }}>Frame Gap</span>
                             <span style={{ fontFamily: 'monospace' }}>{metrics.rafGap?.toFixed(1) || 0}ms</span>
                         </div>
                     </div>
@@ -142,11 +142,11 @@ export default function DebugPanel({ defaultOpen = true }: { defaultOpen?: boole
                             Detailed Timings
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Clear</span> <span style={{ fontFamily: 'monospace' }}>{metrics.clearTime?.toFixed(2) || 0}ms</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Physics</span> <span style={{ fontFamily: 'monospace' }}>{metrics.physicsTime?.toFixed(2) || 0}ms</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Draw</span> <span style={{ fontFamily: 'monospace' }}>{metrics.drawTime?.toFixed(2) || 0}ms</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Scan</span> <span style={{ fontFamily: 'monospace' }}>{metrics.scanTime.toFixed(2)}ms</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gridColumn: 'span 2' }}><span>Rect Update</span> <span style={{ fontFamily: 'monospace' }}>{metrics.rectUpdateTime.toFixed(2)}ms</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Canvas Clear</span> <span style={{ fontFamily: 'monospace' }}>{metrics.clearTime?.toFixed(2) || 0}ms</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Physics Step</span> <span style={{ fontFamily: 'monospace' }}>{metrics.physicsTime?.toFixed(2) || 0}ms</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Rendering</span> <span style={{ fontFamily: 'monospace' }}>{metrics.drawTime?.toFixed(2) || 0}ms</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>DOM Scan</span> <span style={{ fontFamily: 'monospace' }}>{metrics.scanTime.toFixed(2)}ms</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gridColumn: 'span 2' }}><span>Element Tracking</span> <span style={{ fontFamily: 'monospace' }}>{metrics.rectUpdateTime.toFixed(2)}ms</span></div>
                         </div>
                     </div>
 
@@ -183,11 +183,11 @@ export default function DebugPanel({ defaultOpen = true }: { defaultOpen?: boole
                             gap: '6px'
                         }}
                     >
-                        {copied ? '✓ COPIED' : '📋 COPY METRICS'}
+                        {copied ? '✓ Copied' : 'Copy Metrics'}
                     </button>
 
                     <div style={{ marginTop: '12px', fontSize: '10px', color: '#64748b', textAlign: 'center' }}>
-                        Shift+D to toggle
+                        Press Shift+D to toggle
                     </div>
                 </>
             )}
