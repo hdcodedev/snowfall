@@ -49,6 +49,8 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
     // Cached layout values — avoid reading scrollWidth/scrollHeight/innerWidth/innerHeight every frame
     const worldSizeRef = useRef({ width: 0, height: 0 });
     const viewportRef = useRef({ width: 0, height: 0 });
+    // Cache 2D context — getContext('2d') is a DOM API call with overhead
+    const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
     const animate = useCallback((currentTime: number) => {
         const {
@@ -71,11 +73,13 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             return;
         }
 
-        const ctx = canvas.getContext('2d');
+        // Use cached 2D context — getContext('2d') is a DOM call with measurable overhead
+        const ctx = ctxRef.current || canvas.getContext('2d');
         if (!ctx) {
             animationIdRef.current = requestAnimationFrame(animateRef.current);
             return;
         }
+        if (!ctxRef.current) ctxRef.current = ctx;
 
         if (lastTimeRef.current === 0) {
             lastTimeRef.current = currentTime;
