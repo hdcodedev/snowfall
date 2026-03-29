@@ -1,22 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
-import { Snowfall, SnowfallProvider, DebugPanel } from '@hdcodedev/snowfall';
+import { Snowfall, SnowfallProvider } from '@hdcodedev/snowfall';
 import { Analytics } from "@vercel/analytics/next";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const playfair = Playfair_Display({
+  variable: "--font-display",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const dmSans = DM_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "@hdcodedev/snowfall - Demo",
-  description: "Realistic snowfall effect for React with physics-based accumulation",
+  title: "Snowfall — Realistic Snow Physics for React",
+  description: "A refined snowfall effect with physics-based accumulation, wind, melting, and surface detection. Built for React.",
+  openGraph: {
+    title: "Snowfall — Realistic Snow Physics for React",
+    description: "Physics-based snow accumulation with wind, melting, and smart surface detection.",
+  },
 };
 
 export default function RootLayout({
@@ -27,11 +35,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${playfair.variable} ${dmSans.variable} antialiased grain-overlay`}
       >
-        <SnowfallProvider initialDebug={true}>
+        <SnowfallProvider>
           <Snowfall />
-          <DebugPanel defaultOpen={false} />
           {children}
         </SnowfallProvider>
         <Analytics />
