@@ -1,7 +1,7 @@
 import { PhysicsConfig } from '../components/SnowfallProvider';
 import { Snowflake, SnowAccumulation, ElementSurface } from './types';
 import { getAccumulationSurfaces } from './dom';
-import { VAL_BOTTOM, TAU } from './constants';
+import { VAL_BOTTOM, TAU, BUCKET_SIZE } from './constants';
 
 // Precomputed trig lookup table — eliminates Math.sin/Math.cos per flake per frame.
 // 512 entries gives ~0.012 rad resolution, visually identical to exact trig.
@@ -17,8 +17,6 @@ for (let i = 0; i < TRIG_TABLE_SIZE; i++) {
 }
 
 const trigSin = (angle: number): number => {
-    // Normalize to [0, TAU) then scale to table index.
-    // Single modulo + conditional add is cheaper than double-modulo ((x % TAU + TAU) % TAU).
     const normalized = angle < 0 ? angle % TAU + TAU : angle % TAU;
     return SIN_TABLE[(normalized * TRIG_ANGLE_SCALE | 0) & TRIG_TABLE_MASK];
 };
@@ -28,18 +26,33 @@ const trigCos = (angle: number): number => {
     return COS_TABLE[(normalized * TRIG_ANGLE_SCALE | 0) & TRIG_TABLE_MASK];
 };
 
+// Precomputed falloff table for collision spread — avoids trigCos(normDist * PI) per bucket per collision.
+// Index = normalized distance [0..1] mapped to 0..FALLOFF_TABLE_SIZE-1.
+// Value = (cos(index/FALLOFF_TABLE_SIZE * PI) + 1) / 2
+const FALLOFF_TABLE_SIZE = 64;
+const FALLOFF_TABLE = new Float64Array(FALLOFF_TABLE_SIZE);
+for (let i = 0; i < FALLOFF_TABLE_SIZE; i++) {
+    const normDist = i / (FALLOFF_TABLE_SIZE - 1);
+    FALLOFF_TABLE[i] = (Math.cos(normDist * Math.PI) + 1) / 2;
+}
+
+/** Look up precomputed falloff curve by normalized distance [0..1]. */
+const falloffLookup = (normDist: number): number => {
+    const idx = (normDist * (FALLOFF_TABLE_SIZE - 1) + 0.5) | 0;
+    return FALLOFF_TABLE[idx < 0 ? 0 : idx >= FALLOFF_TABLE_SIZE ? FALLOFF_TABLE_SIZE - 1 : idx];
+};
+
+/** Convert a pixel coordinate to a bucket index. */
+const toBucket = (pixel: number): number => (pixel / BUCKET_SIZE) | 0;
+
 export const createSnowflake = (
     worldWidth: number,
     config: PhysicsConfig,
     isBackground = false
 ): Snowflake => {
-    // Two random calls per flake:
-    // 1) horizontal position
-    // 2) DNA seed for all other traits
     const x = Math.random() * worldWidth;
     const dna = Math.random();
 
-    // Pseudo-random trait extraction from DNA
     const noise = {
         speed: (dna * 13) % 1,
         wind: (dna * 7) % 1,
@@ -49,7 +62,6 @@ export const createSnowflake = (
 
     const { MIN, MAX } = config.FLAKE_SIZE;
 
-    // Background vs foreground tuning
     const profile = isBackground
         ? {
             sizeMin: MIN * 0.6,
@@ -91,6 +103,7 @@ export const createSnowflake = (
 
 /**
  * Initialize max heights array for snow accumulation with edge tapering and smoothing.
+ * Operates on bucket resolution (ceil(width / BUCKET_SIZE) buckets).
  * Exported for benchmarking.
  */
 export const initializeMaxHeights = (
@@ -98,61 +111,64 @@ export const initializeMaxHeights = (
     baseMax: number,
     borderRadius: number,
     isBottom: boolean = false
-): number[] => {
-    const maxHeights = new Array(width);
-    for (let i = 0; i < width; i++) {
+): Float32Array => {
+    const bucketCount = Math.ceil(width / BUCKET_SIZE);
+    const maxHeights = new Float32Array(bucketCount);
+
+    for (let b = 0; b < bucketCount; b++) {
+        const pixelCenter = b * BUCKET_SIZE + BUCKET_SIZE / 2;
         let edgeFactor = 1.0;
         if (!isBottom && borderRadius > 0) {
-            if (i < borderRadius) {
-                edgeFactor = Math.pow(i / borderRadius, 1.2);
-            } else if (i > width - borderRadius) {
-                edgeFactor = Math.pow((width - i) / borderRadius, 1.2);
+            if (pixelCenter < borderRadius) {
+                edgeFactor = Math.pow(pixelCenter / borderRadius, 1.2);
+            } else if (pixelCenter > width - borderRadius) {
+                edgeFactor = Math.pow((width - pixelCenter) / borderRadius, 1.2);
             }
         }
-        maxHeights[i] = baseMax * edgeFactor * (0.85 + Math.random() * 0.15);
+        maxHeights[b] = baseMax * edgeFactor * (0.85 + Math.random() * 0.15);
     }
 
-    // Ping-pong buffer for smoothing — avoids allocating a new array each pass
-    const smoothBuf = new Array(width);
+    const smoothBuf = new Float32Array(bucketCount);
     const smoothPasses = 4;
     for (let p = 0; p < smoothPasses; p++) {
         smoothBuf[0] = maxHeights[0];
-        smoothBuf[width - 1] = maxHeights[width - 1];
-        for (let i = 1; i < width - 1; i++) {
+        smoothBuf[bucketCount - 1] = maxHeights[bucketCount - 1];
+        for (let i = 1; i < bucketCount - 1; i++) {
             smoothBuf[i] = (maxHeights[i - 1] + maxHeights[i] + maxHeights[i + 1]) / 3;
         }
-        // Swap: copy smoothed result back into maxHeights
-        for (let i = 0; i < width; i++) {
-            maxHeights[i] = smoothBuf[i];
-        }
+        maxHeights.set(smoothBuf);
     }
 
     return maxHeights;
 };
 
-const calculateCurveOffsets = (width: number, borderRadius: number, isBottom: boolean): number[] => {
-    const offsets = new Array(width).fill(0);
+const calculateCurveOffsets = (width: number, borderRadius: number, isBottom: boolean): Float32Array => {
+    const bucketCount = Math.ceil(width / BUCKET_SIZE);
+    const offsets = new Float32Array(bucketCount);
     if (borderRadius <= 0 || isBottom) return offsets;
 
-    for (let x = 0; x < width; x++) {
+    for (let b = 0; b < bucketCount; b++) {
+        const pixelCenter = b * BUCKET_SIZE + BUCKET_SIZE / 2;
         let offset = 0;
-        if (x < borderRadius) {
-            const dist = borderRadius - x;
+        if (pixelCenter < borderRadius) {
+            const dist = borderRadius - pixelCenter;
             offset = borderRadius - Math.sqrt(Math.max(0, borderRadius * borderRadius - dist * dist));
-        } else if (x > width - borderRadius) {
-            const dist = x - (width - borderRadius);
+        } else if (pixelCenter > width - borderRadius) {
+            const dist = pixelCenter - (width - borderRadius);
             offset = borderRadius - Math.sqrt(Math.max(0, borderRadius * borderRadius - dist * dist));
         }
-        offsets[x] = offset;
+        offsets[b] = offset;
     }
     return offsets;
 };
 
-const calculateGravityMultipliers = (height: number): number[] => {
-    const multipliers = new Array(height);
-    for (let i = 0; i < height; i++) {
-        const ratio = i / height;
-        multipliers[i] = Math.sqrt(ratio);
+const calculateGravityMultipliers = (height: number): Float32Array => {
+    const bucketCount = Math.ceil(height / BUCKET_SIZE);
+    const multipliers = new Float32Array(bucketCount);
+    for (let b = 0; b < bucketCount; b++) {
+        const pixelCenter = b * BUCKET_SIZE + BUCKET_SIZE / 2;
+        const ratio = pixelCenter / height;
+        multipliers[b] = Math.sqrt(ratio);
     }
     return multipliers;
 };
@@ -161,33 +177,29 @@ export const initializeAccumulation = (
     accumulationMap: Map<Element, SnowAccumulation>,
     config: PhysicsConfig
 ) => {
-    // Scan DOM for new valid surfaces
     const elements = getAccumulationSurfaces(config.MAX_SURFACES);
-    // Prune disconnected elements
     for (const [el] of accumulationMap.entries()) {
         if (!el.isConnected) {
             accumulationMap.delete(el);
         }
     }
 
-    // Process each element — getBoundingClientRect forces layout once per element
-    // but since we only have MAX_SURFACES (15) elements, this is acceptable.
-    // Avoids allocating a temporary reads array on every init call.
     for (const { el, type } of elements) {
         const rect = el.getBoundingClientRect();
         const styles = window.getComputedStyle(el);
         const existing = accumulationMap.get(el);
         const width = Math.ceil(rect.width);
         const isBottom = type === VAL_BOTTOM;
+        const bucketCount = Math.ceil(width / BUCKET_SIZE);
 
-        if (existing && existing.heights.length === width) {
+        if (existing && existing.heights.length === bucketCount) {
             existing.type = type;
             if (existing.borderRadius !== undefined) {
                 existing.borderRadius = parseFloat(styles.borderTopLeftRadius) || 0;
                 existing.curveOffsets = calculateCurveOffsets(width, existing.borderRadius, isBottom);
-                // Initialize gravity multipliers if height matches but they're missing
-                if (existing.leftSide.length === Math.ceil(rect.height) && !existing.sideGravityMultipliers) {
-                    existing.sideGravityMultipliers = calculateGravityMultipliers(existing.leftSide.length);
+                const sideBucketCount = Math.ceil(Math.ceil(rect.height) / BUCKET_SIZE);
+                if (existing.leftSide.length === sideBucketCount && !existing.sideGravityMultipliers.length) {
+                    existing.sideGravityMultipliers = calculateGravityMultipliers(Math.ceil(rect.height));
                 }
             }
             continue;
@@ -195,80 +207,82 @@ export const initializeAccumulation = (
 
         const height = Math.ceil(rect.height);
         const baseMax = isBottom ? config.MAX_DEPTH.BOTTOM : config.MAX_DEPTH.TOP;
-
         const borderRadius = parseFloat(styles.borderTopLeftRadius) || 0;
+        const sideBucketCount = Math.ceil(height / BUCKET_SIZE);
 
         const maxHeights = initializeMaxHeights(width, baseMax, borderRadius, isBottom);
 
         accumulationMap.set(el, {
-            heights: existing?.heights.length === width ? existing.heights : new Array(width).fill(0),
+            heights: existing?.heights.length === bucketCount ? existing.heights : new Float32Array(bucketCount),
             maxHeights,
-            leftSide: existing?.leftSide.length === height ? existing.leftSide : new Array(height).fill(0),
-            rightSide: existing?.rightSide.length === height ? existing.rightSide : new Array(height).fill(0),
+            leftSide: existing?.leftSide.length === sideBucketCount ? existing.leftSide : new Float32Array(sideBucketCount),
+            rightSide: existing?.rightSide.length === sideBucketCount ? existing.rightSide : new Float32Array(sideBucketCount),
             maxSideHeight: isBottom ? 0 : config.MAX_DEPTH.SIDE,
-            leftMax: existing?.leftSide.length === height ? existing.leftMax : 0,
-            rightMax: existing?.rightSide.length === height ? existing.rightMax : 0,
+            leftMax: existing?.leftSide.length === sideBucketCount ? existing.leftMax : 0,
+            rightMax: existing?.rightSide.length === sideBucketCount ? existing.rightMax : 0,
             maxHeight: existing?.maxHeight || 0,
             borderRadius,
             curveOffsets: calculateCurveOffsets(width, borderRadius, isBottom),
             sideGravityMultipliers: calculateGravityMultipliers(height),
             type,
-            _smoothTemp: existing?._smoothTemp || [],
+            _smoothTemp: existing?._smoothTemp?.length === bucketCount ? existing._smoothTemp : new Float32Array(bucketCount),
+            dirtyMin: existing?.dirtyMin ?? bucketCount,
+            dirtyMax: existing?.dirtyMax ?? 0,
+            bucketSize: BUCKET_SIZE,
+            _cacheCanvas: existing?._cacheCanvas ?? null,
+            _cacheCtx: existing?._cacheCtx ?? null,
+            _cacheMaxHeight: existing?._cacheMaxHeight ?? -1,
         });
     }
 };
 
+const markDirty = (acc: SnowAccumulation, bucketIdx: number): void => {
+    if (bucketIdx < acc.dirtyMin) acc.dirtyMin = bucketIdx;
+    if (bucketIdx > acc.dirtyMax) acc.dirtyMax = bucketIdx;
+};
+
 /**
  * Accumulate snow on a side array and return the new max height.
- * The caller should update acc.leftMax or acc.rightMax with the returned value.
+ * Operates at bucket resolution.
  */
 export const accumulateSide = (
-    sideArray: number[],
+    sideArray: Float32Array,
     rectHeight: number,
-    localY: number,
+    localYPixel: number,
     maxSideHeight: number,
     borderRadius: number,
     sideRate: number,
     currentMax: number
 ): number => {
-    const spread = 4;
-    // Single random call instead of per-iteration
+    const spreadBuckets = Math.max(1, Math.ceil(4 / BUCKET_SIZE));
+    const localBucket = toBucket(localYPixel);
     const addHeight = sideRate * (0.8 + Math.random() * 0.4);
     let newMax = currentMax;
 
-    for (let dy = -spread; dy <= spread; dy++) {
-        const y = localY + dy;
-        if (y >= 0 && y < sideArray.length) {
-            const inTop = y < borderRadius;
-            const inBottom = y > rectHeight - borderRadius;
+    for (let db = -spreadBuckets; db <= spreadBuckets; db++) {
+        const b = localBucket + db;
+        if (b >= 0 && b < sideArray.length) {
+            const pixelCenter = b * BUCKET_SIZE + BUCKET_SIZE / 2;
+            const inTop = pixelCenter < borderRadius;
+            const inBottom = pixelCenter > rectHeight - borderRadius;
             if (borderRadius > 0 && (inTop || inBottom)) continue;
 
-            const normalizedDist = Math.abs(dy) / spread;
-            const falloff = (trigCos(normalizedDist * Math.PI) + 1) / 2;
-            const newHeight = Math.min(maxSideHeight, sideArray[y] + addHeight * falloff);
-            sideArray[y] = newHeight;
+            const normalizedDist = Math.abs(db) / spreadBuckets;
+            const falloff = falloffLookup(normalizedDist);
+            const newHeight = Math.min(maxSideHeight, sideArray[b] + addHeight * falloff);
+            sideArray[b] = newHeight;
             if (newHeight > newMax) newMax = newHeight;
         }
     }
     return newMax;
 };
 
-/**
- * Update snowflake position and animation state.
- * This must happen every frame for smooth animation.
- */
 const updateSnowflakePosition = (flake: Snowflake, dt: number): void => {
     flake.wobble += flake.wobbleSpeed * dt;
-
-    // Calculate position with wobble effect using precomputed trig LUT
     flake.x += (flake.wind + trigSin(flake.wobble) * 0.5) * dt;
     flake.y += (flake.speed + trigCos(flake.wobble * 0.5) * 0.1) * dt;
 };
 
-/**
- * Check and handle side collisions (left/right edges of elements).
- * Returns true if snowflake landed on a side.
- */
 const checkSideCollision = (
     flakeViewportX: number,
     flakeViewportY: number,
@@ -285,8 +299,10 @@ const checkSideCollision = (
     const localY = Math.floor(flakeViewportY - rect.top);
     const borderRadius = acc.borderRadius;
 
-    const isInTopCorner = localY < borderRadius;
-    const isInBottomCorner = localY > rect.height - borderRadius;
+    const localBucket = toBucket(localY);
+    const pixelCenter = localBucket * BUCKET_SIZE + BUCKET_SIZE / 2;
+    const isInTopCorner = pixelCenter < borderRadius;
+    const isInBottomCorner = pixelCenter > rect.height - borderRadius;
     const isCorner = borderRadius > 0 && (isInTopCorner || isInBottomCorner);
 
     if (isCorner) {
@@ -308,10 +324,6 @@ const checkSideCollision = (
     return false;
 };
 
-/**
- * Check and handle top/bottom surface collisions.
- * Returns true if snowflake landed on the surface.
- */
 const checkSurfaceCollision = (
     flake: Snowflake,
     flakeViewportX: number,
@@ -325,54 +337,48 @@ const checkSurfaceCollision = (
         return false;
     }
 
-    const localX = Math.floor(flakeViewportX - rect.left);
-    const currentHeight = acc.heights[localX] || 0;
-    const maxHeight = acc.maxHeights[localX] || 5;
+    const localXPixel = Math.floor(flakeViewportX - rect.left);
+    const bucketIdx = toBucket(localXPixel);
+    if (bucketIdx < 0 || bucketIdx >= acc.heights.length) return false;
+
+    const currentHeight = acc.heights[bucketIdx];
+    const maxHeight = acc.maxHeights[bucketIdx];
     const surfaceY = isBottom ? rect.bottom - currentHeight : rect.top - currentHeight;
 
     if (flakeViewportY < surfaceY || flakeViewportY >= surfaceY + 10 || currentHeight >= maxHeight) {
         return false;
     }
 
-    // For bottom surfaces, probabilistically skip accumulation (85% chance).
-    // Hoisted before spread computation to avoid wasted work.
     if (isBottom && Math.random() >= 0.15) {
         return false;
     }
 
-    // Precompute all random values once instead of calling Math.random() 5+ times.
-    // This reduces random calls from ~(2 + spread*2) to exactly 3 per collision.
-    const baseSpread = Math.ceil(flake.radius);
+    const baseSpreadBuckets = Math.max(1, Math.ceil(flake.radius / BUCKET_SIZE));
     const rand1 = Math.random();
     const rand2 = Math.random();
-    const spread = baseSpread + (rand1 < 0.5 ? 0 : 1);
+    const spreadBuckets = baseSpreadBuckets + (rand1 < 0.5 ? 0 : 1);
     const accumRate = isBottom ? config.ACCUMULATION.BOTTOM_RATE : config.ACCUMULATION.TOP_RATE;
-    const centerOffset = (rand2 * 3 | 0) - 1; // -1, 0, or 1
+    const centerOffset = (rand2 * 3 | 0) - 1;
 
-    // Deterministic skip: use position-based pattern instead of random per pixel.
-    // Skips ~15% of pixels in a distributed pattern (visually identical to random).
-    const skipPattern = 6; // skip every 7th pixel (≈14.3%)
+    for (let db = -spreadBuckets; db <= spreadBuckets; db++) {
+        if (Math.random() < 0.15) continue;
+        const b = bucketIdx + db + centerOffset;
+        if (b >= 0 && b < acc.heights.length) {
+            const dist = Math.abs(db);
+            const pixelMax = acc.maxHeights[b];
 
-    for (let dx = -spread; dx <= spread; dx++) {
-        // Deterministic skip based on position — eliminates Math.random() from inner loop
-        if (((localX + dx) & skipPattern) === 0) continue;
-        const idx = localX + dx + centerOffset;
-        if (idx >= 0 && idx < acc.heights.length) {
-            const dist = Math.abs(dx);
-            const pixelMax = acc.maxHeights[idx] || 5;
-
-            const normDist = dist / spread;
-            const falloff = (trigCos(normDist * Math.PI) + 1) / 2;
+            const normDist = dist / spreadBuckets;
+            const falloff = falloffLookup(normDist);
             const baseAdd = 0.3 * falloff;
 
-            // Use precomputed rand value with position-based variation instead of new random
-            const randomFactor = 0.8 + ((rand1 + dx * 0.1) % 1) * 0.4;
+            const randomFactor = 0.8 + ((rand1 + db * 0.1) % 1) * 0.4;
             const addHeight = baseAdd * randomFactor * accumRate;
 
-            if (acc.heights[idx] < pixelMax && addHeight > 0) {
-                const newH = Math.min(pixelMax, acc.heights[idx] + addHeight);
-                acc.heights[idx] = newH;
+            if (acc.heights[b] < pixelMax && addHeight > 0) {
+                const newH = Math.min(pixelMax, acc.heights[b] + addHeight);
+                acc.heights[b] = newH;
                 if (newH > acc.maxHeight) acc.maxHeight = newH;
+                markDirty(acc, b);
             }
         }
     }
@@ -380,9 +386,6 @@ const checkSurfaceCollision = (
     return true;
 };
 
-/**
- * Check if snowflake should be removed (out of bounds or landed).
- */
 const shouldRemoveSnowflake = (
     flake: Snowflake,
     landed: boolean,
@@ -395,6 +398,30 @@ const shouldRemoveSnowflake = (
         flake.x > worldWidth + 20;
 };
 
+/**
+ * Compute the viewport-space bounding box of all surfaces.
+ * Used as a cheap pre-filter: flakes outside this box skip all collision checks.
+ */
+const computeSurfacesBoundingBox = (
+    elementRects: ElementSurface[]
+): { top: number; bottom: number; left: number; right: number } => {
+    let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
+    for (let i = 0; i < elementRects.length; i++) {
+        const r = elementRects[i].rect;
+        if (r.top < top) top = r.top;
+        if (r.bottom > bottom) bottom = r.bottom;
+        if (r.left < left) left = r.left;
+        if (r.right > right) right = r.right;
+    }
+    return { top, bottom, left, right };
+};
+
+// Vertical padding above/below surfaces for collision — flakes this far from the
+// bounding box are guaranteed to not collide with any surface.
+const COLLISION_PROXIMITY_Y = 60;
+// Horizontal padding for side collisions
+const COLLISION_PROXIMITY_X = 10;
+
 export const updateSnowflakes = (
     snowflakes: Snowflake[],
     elementRects: ElementSurface[],
@@ -406,52 +433,61 @@ export const updateSnowflakes = (
     scrollY: number,
     frameIndex: number = 0
 ) => {
-    // Scroll used for World -> Viewport mapping for collision.
-    // Flakes are in World Space, DOM Rects are in Viewport Space.
-    // Passed from animation loop which already reads these values.
-
-    // Deterministic collision check: spread checks across frames instead of Math.random().
-    // Each frame, only flakes whose index matches (frameIndex % divisor) check collisions.
     const collisionDivisor = Math.max(1, Math.round(1 / config.COLLISION_CHECK_RATE));
-
-    // Hoist config properties to local variables — avoids nested property access in hot loop
     const sideRate = config.ACCUMULATION.SIDE_RATE;
+
+    // Spatial pre-filter: compute bounding box of all surfaces once per frame.
+    // Flakes outside this box skip the entire per-surface collision loop.
+    const bbox = computeSurfacesBoundingBox(elementRects);
+    const bboxTop = bbox.top - COLLISION_PROXIMITY_Y;
+    const bboxBottom = bbox.bottom + COLLISION_PROXIMITY_Y;
+    const bboxLeft = bbox.left - COLLISION_PROXIMITY_X;
+    const bboxRight = bbox.right + COLLISION_PROXIMITY_X;
 
     let i = snowflakes.length;
     while (i-- > 0) {
         const flake = snowflakes[i];
 
-        // Always update position and animation (cheap, must happen every frame)
         updateSnowflakePosition(flake, dt);
 
         let landed = false;
 
-        // Deterministic collision detection: only a subset of flakes check per frame
         if (i % collisionDivisor === frameIndex % collisionDivisor) {
-            // Map flake from World Space to Viewport Space for collision detection
             const flakeViewportX = flake.x - scrollX;
             const flakeViewportY = flake.y - scrollY;
 
-            for (const item of elementRects) {
-                const { rect, acc } = item;
-                const isBottom = acc.type === VAL_BOTTOM;
+            // Spatial pre-filter: skip all collision checks if flake is far from all surfaces.
+            // This eliminates ~90% of collision iterations for typical pages where surfaces
+            // occupy a small fraction of the viewport.
+            const inProximity = flakeViewportY >= bboxTop &&
+                flakeViewportY <= bboxBottom &&
+                flakeViewportX >= bboxLeft &&
+                flakeViewportX <= bboxRight;
 
-                // Check side collisions (left/right edges)
-                if (!landed && !isBottom) {
-                    landed = checkSideCollision(flakeViewportX, flakeViewportY, rect, acc, sideRate);
-                    if (landed) break;
-                }
+            if (inProximity) {
+                for (const item of elementRects) {
+                    const { rect, acc } = item;
+                    const isBottom = acc.type === VAL_BOTTOM;
 
-                // Check top/bottom surface collisions
-                if (!landed) {
-                    landed = checkSurfaceCollision(flake, flakeViewportX, flakeViewportY, rect, acc, isBottom, config);
-                    if (landed) break;
+                    if (!landed && !isBottom) {
+                        landed = checkSideCollision(flakeViewportX, flakeViewportY, rect, acc, sideRate);
+                        if (landed) {
+                            item.hasChanged = true;
+                            break;
+                        }
+                    }
+
+                    if (!landed) {
+                        landed = checkSurfaceCollision(flake, flakeViewportX, flakeViewportY, rect, acc, isBottom, config);
+                        if (landed) {
+                            item.hasChanged = true;
+                            break;
+                        }
+                    }
                 }
             }
         }
 
-        // Remove snowflake if it landed or went out of bounds.
-        // Swap-and-pop: O(1) removal instead of O(n) splice.
         if (shouldRemoveSnowflake(flake, landed, worldWidth, worldHeight)) {
             const lastIdx = snowflakes.length - 1;
             if (i < lastIdx) {
@@ -462,86 +498,123 @@ export const updateSnowflakes = (
     }
 };
 
+// Smoothing runs every SMOOTH_INTERVAL_FRAMES instead of every frame.
+// At 60fps, smoothing at 15fps is visually identical for snow surfaces.
+const SMOOTH_INTERVAL_FRAMES = 4;
+const MELT_INTERVAL_FRAMES = 3;
+// Minimum dirty region size (in buckets) to justify smoothing.
+// Below this threshold, smoothing produces no visible effect.
+const MIN_SMOOTH_DIRTY_SIZE = 6;
+
 export const meltAndSmoothAccumulation = (
     elementRects: ElementSurface[],
     config: PhysicsConfig,
     dt: number,
     frameIndex: number = 0
 ) => {
-    // Smooth only every 3 frames — visual difference is imperceptible, saves ~66% of smoothing work
-    const shouldSmooth = frameIndex % 3 === 0;
+    const shouldMelt = frameIndex % MELT_INTERVAL_FRAMES === 0;
+    const shouldSmooth = frameIndex % SMOOTH_INTERVAL_FRAMES === 0;
+    const meltRate = shouldMelt ? config.MELT_SPEED * dt * MELT_INTERVAL_FRAMES : 0;
 
     for (const { acc } of elementRects) {
-        const meltRate = config.MELT_SPEED * dt;
         const len = acc.heights.length;
 
-        // Smooth in-place using persistent temp buffer (avoids allocating [...acc.heights] every frame)
-        if (shouldSmooth && len > 2) {
-            // Early exit: if all values are near-zero, skip smoothing entirely
-            let needsSmoothing = false;
-            for (let i = 0; i < len; i++) {
-                if (acc.heights[i] > 0.05) { needsSmoothing = true; break; }
-            }
+        if (acc.dirtyMin > acc.dirtyMax) continue;
 
-            if (needsSmoothing) {
-                // Reuse or grow temp buffer
-                if (acc._smoothTemp.length < len) {
-                    acc._smoothTemp = new Array(len);
-                }
+        const dMin = Math.max(1, acc.dirtyMin);
+        const dMax = Math.min(len - 2, acc.dirtyMax);
+        const dirtySize = dMax - dMin + 1;
 
-                // Read from heights, write smoothed values to temp
-                acc._smoothTemp[0] = acc.heights[0];
-                for (let i = 1; i < len - 1; i++) {
-                    if (acc.heights[i] > 0.05) {
-                        const avg = (acc.heights[i - 1] + acc.heights[i + 1]) / 2;
-                        acc._smoothTemp[i] = acc.heights[i] * 0.99 + avg * 0.01;
-                    } else {
-                        acc._smoothTemp[i] = acc.heights[i];
-                    }
-                }
-                acc._smoothTemp[len - 1] = acc.heights[len - 1];
+        // Only smooth when dirty region is large enough to matter
+        const doSmooth = shouldSmooth && dirtySize >= MIN_SMOOTH_DIRTY_SIZE;
 
-                // Copy back in-place
-                for (let i = 0; i < len; i++) {
-                    acc.heights[i] = acc._smoothTemp[i];
-                }
-            }
-        }
-
-        // Melt
         let newMaxHeight = 0;
-        for (let i = 0; i < len; i++) {
-            const h = acc.heights[i];
-            if (h > 0) {
-                // Clamp to 0 to avoid tiny negative floats lingering
-                const melted = h - meltRate;
-                const clamped = melted > 0 ? melted : 0;
-                acc.heights[i] = clamped;
-                if (clamped > newMaxHeight) newMaxHeight = clamped;
+
+        if (doSmooth && meltRate > 0) {
+            // Combined smooth + melt pass
+            for (let i = dMin; i <= dMax; i++) {
+                const h = acc.heights[i];
+                if (h > 0.05) {
+                    const avg = (acc.heights[i - 1] + acc.heights[i + 1]) / 2;
+                    let val = h * 0.99 + avg * 0.01;
+                    val -= meltRate;
+                    if (val < 0) val = 0;
+                    acc.heights[i] = val;
+                    if (val > newMaxHeight) newMaxHeight = val;
+                } else if (h > 0) {
+                    acc.heights[i] = 0;
+                }
+            }
+        } else if (meltRate > 0) {
+            // Melt only (no smoothing this frame)
+            for (let i = dMin; i <= dMax; i++) {
+                const h = acc.heights[i];
+                if (h > 0) {
+                    const melted = h - meltRate;
+                    const clamped = melted > 0 ? melted : 0;
+                    acc.heights[i] = clamped;
+                    if (clamped > newMaxHeight) newMaxHeight = clamped;
+                }
+            }
+        } else if (doSmooth) {
+            // Smooth only (no melting this frame)
+            for (let i = dMin; i <= dMax; i++) {
+                const h = acc.heights[i];
+                if (h > 0.05) {
+                    const avg = (acc.heights[i - 1] + acc.heights[i + 1]) / 2;
+                    const val = h * 0.99 + avg * 0.01;
+                    acc.heights[i] = val;
+                    if (val > newMaxHeight) newMaxHeight = val;
+                }
+            }
+        } else {
+            // Neither melting nor smoothing — just track maxHeight for the dirty region
+            for (let i = dMin; i <= dMax; i++) {
+                if (acc.heights[i] > newMaxHeight) newMaxHeight = acc.heights[i];
             }
         }
+
+        // Check boundary buckets for maxHeight
+        for (let i = 0; i < Math.min(dMin, len); i++) {
+            if (acc.heights[i] > newMaxHeight) newMaxHeight = acc.heights[i];
+        }
+        for (let i = Math.max(dMax + 1, 0); i < len; i++) {
+            if (acc.heights[i] > newMaxHeight) newMaxHeight = acc.heights[i];
+        }
+
         acc.maxHeight = newMaxHeight;
-        // Melt sides and update max values
-        let leftMax = 0;
-        let rightMax = 0;
-        const sideLen = acc.leftSide.length;
-        for (let i = 0; i < sideLen; i++) {
-            const l = acc.leftSide[i];
-            if (l > 0) {
-                const melted = l - meltRate;
-                const clamped = melted > 0 ? melted : 0;
-                acc.leftSide[i] = clamped;
-                if (clamped > leftMax) leftMax = clamped;
+
+        // Melt sides (only during melt frames, and only if sides have snow)
+        if (shouldMelt && (acc.leftMax > 0 || acc.rightMax > 0)) {
+            let leftMax = 0;
+            let rightMax = 0;
+            const sideLen = acc.leftSide.length;
+            for (let i = 0; i < sideLen; i++) {
+                const l = acc.leftSide[i];
+                if (l > 0) {
+                    const clamped = l > meltRate ? l - meltRate : 0;
+                    acc.leftSide[i] = clamped;
+                    if (clamped > leftMax) leftMax = clamped;
+                }
+                const r = acc.rightSide[i];
+                if (r > 0) {
+                    const clamped = r > meltRate ? r - meltRate : 0;
+                    acc.rightSide[i] = clamped;
+                    if (clamped > rightMax) rightMax = clamped;
+                }
             }
-            const r = acc.rightSide[i];
-            if (r > 0) {
-                const melted = r - meltRate;
-                const clamped = melted > 0 ? melted : 0;
-                acc.rightSide[i] = clamped;
-                if (clamped > rightMax) rightMax = clamped;
-            }
+            acc.leftMax = leftMax;
+            acc.rightMax = rightMax;
         }
-        acc.leftMax = leftMax;
-        acc.rightMax = rightMax;
+
+        // Shrink dirty bounds
+        if (shouldMelt) {
+            let newMin = acc.dirtyMin;
+            let newMax = acc.dirtyMax;
+            while (newMin <= newMax && acc.heights[newMin] <= 0.05) newMin++;
+            while (newMax >= newMin && acc.heights[newMax] <= 0.05) newMax--;
+            acc.dirtyMin = newMin;
+            acc.dirtyMax = newMax;
+        }
     }
 };

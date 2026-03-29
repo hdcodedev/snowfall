@@ -116,7 +116,7 @@ export const getElementRects = (accumulationMap: Map<Element, SnowAccumulation>)
         if (!el.isConnected) continue;
         // PURE VIEWPORT RECT. No scroll math.
         const rect = el.getBoundingClientRect();
-        elementRects.push({ el, rect, acc });
+        elementRects.push({ el, rect, acc, hasChanged: false });
     }
     return elementRects;
 };
