@@ -37,10 +37,11 @@ jobs:
 
       - name: Setup Node.js
         if: github.event_name == 'workflow_dispatch' || steps.version-check.outputs.changed == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22.14.0'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       - name: Install Dependencies
         if: github.event_name == 'workflow_dispatch' || steps.version-check.outputs.changed == 'true'
