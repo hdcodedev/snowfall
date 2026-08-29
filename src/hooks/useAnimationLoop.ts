@@ -160,10 +160,14 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
             const shouldForceSpawn = snowflakes.length < minFlakeFloor;
             const currentFps = getCurrentFps();
             const isVisible = document.visibilityState === 'visible';
-            const isUnderFpsThreshold = isVisible && currentFps > 0 && currentFps < 40;
+            // Safari often runs at 30fps even on healthy tabs, so use a more lenient
+            // threshold and a stronger random fallback so a few slow frames don't
+            // strangle the spawn rate.
+            const isUnderFpsThreshold = isVisible && currentFps > 0 && currentFps < 25;
 
-            // Adaptive spawn rate: reduce load only when visible and actually under target FPS.
-            const shouldSpawn = shouldForceSpawn || !isUnderFpsThreshold || Math.random() < 0.2;
+            // Adaptive spawn rate: reduce load only when really struggling, and
+            // still keep a healthy spawn chance as a safety net.
+            const shouldSpawn = shouldForceSpawn || !isUnderFpsThreshold || Math.random() < 0.7;
 
             if (shouldSpawn) {
                 const isBackground = Math.random() < 0.4;

@@ -187,8 +187,16 @@ export const drawAccumulations = (
         const isBottom = acc.type === VAL_BOTTOM;
         const pixelWidth = acc.heights.length * acc.bucketSize;
 
-        // Re-render cache if accumulation changed significantly
-        if (!acc._cacheCanvas || Math.abs(acc.maxHeight - acc._cacheMaxHeight) > CACHE_RENDER_THRESHOLD) {
+        // Re-render cache when accumulation is dirty (new snow landed this frame)
+        // or when maxHeight changed by more than the threshold. The dirty region is
+        // maintained for free by physics, so using it avoids the visible "step" between
+        // cache rebuilds without re-rendering when nothing changed.
+        const isDirty = acc.dirtyMin <= acc.dirtyMax;
+        if (
+            !acc._cacheCanvas ||
+            isDirty ||
+            Math.abs(acc.maxHeight - acc._cacheMaxHeight) > CACHE_RENDER_THRESHOLD
+        ) {
             renderAccumulationCache(acc, pixelWidth, isBottom);
         }
 
