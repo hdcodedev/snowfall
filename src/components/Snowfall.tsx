@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSnowfall } from './SnowfallProvider';
 import { Snowflake, SnowAccumulation } from '../core/types';
-import { initializeAccumulation, clearVisualTemplateCache } from '../core/physics';
+import { initializeAccumulation, clearVisualTemplateCache, refreshSnowflakeVisuals } from '../core/physics';
 import { usePerformanceMetrics } from '../hooks/usePerformanceMetrics';
 import { useSnowfallCanvas } from '../hooks/useSnowfallCanvas';
 import { useAnimationLoop } from '../hooks/useAnimationLoop';
@@ -51,11 +51,14 @@ export default function Snowfall() {
     useEffect(() => {
         physicsConfigRef.current = physicsConfig;
         clearVisualTemplateCache();
-        snowflakesRef.current = [];
+        refreshSnowflakeVisuals(snowflakesRef.current, physicsConfig);
+    }, [physicsConfig]);
+
+    useEffect(() => {
         if (isMounted) {
             resizeCanvas(physicsConfig.MAX_RENDER_DPR);
         }
-    }, [isMounted, physicsConfig, resizeCanvas]);
+    }, [isMounted, physicsConfig.MAX_RENDER_DPR, resizeCanvas]);
 
     useEffect(() => {
         setMetricsRef.current = setMetrics;

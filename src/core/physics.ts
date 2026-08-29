@@ -127,8 +127,17 @@ export const createSnowflake = (
         x,
         y: scrollY - 5,
         wobble: noiseWobblePhase * TAU,
+        dna,
+        isBackground,
         visual,
     };
+};
+
+/** Refresh derived properties without resetting a flake's position or lifecycle. */
+export const refreshSnowflakeVisuals = (flakes: Snowflake[], config: PhysicsConfig): void => {
+    for (const flake of flakes) {
+        flake.visual = getVisualTemplate(flake.dna, flake.isBackground, config);
+    }
 };
 
 /**
