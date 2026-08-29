@@ -255,7 +255,6 @@ export const initializeAccumulation = (
             curveOffsets: calculateCurveOffsets(width, borderRadius, isBottom),
             sideGravityMultipliers: calculateGravityMultipliers(height),
             type,
-            _smoothTemp: existing?._smoothTemp ?? new Float32Array(0),
             dirtyMin: existing?.dirtyMin ?? bucketCount,
             dirtyMax: existing?.dirtyMax ?? 0,
             bucketSize: BUCKET_SIZE,
@@ -503,7 +502,6 @@ export const updateSnowflakes = (
                     if (!landed && !isBottom) {
                         landed = checkSideCollision(flakeViewportX, flakeViewportY, rect, acc, sideRate);
                         if (landed) {
-                            item.hasChanged = true;
                             break;
                         }
                     }
@@ -511,7 +509,6 @@ export const updateSnowflakes = (
                     if (!landed) {
                         landed = checkSurfaceCollision(flake, flakeViewportX, flakeViewportY, rect, acc, isBottom, config);
                         if (landed) {
-                            item.hasChanged = true;
                             break;
                         }
                     }

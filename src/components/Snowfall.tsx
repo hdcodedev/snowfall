@@ -130,6 +130,27 @@ export default function Snowfall() {
 
         window.addEventListener('resize', handleResize);
 
+        // getBoundingClientRect() is viewport-relative, so cached surfaces must
+        // be refreshed when the document or one of their scroll ancestors moves.
+        const handleScroll = (event: Event) => {
+            const target = event.target;
+            if (target === window || target === document || target === document.documentElement || target === document.body) {
+                markRectsDirty(false);
+                return;
+            }
+
+            if (!(target instanceof Element)) return;
+
+            for (const surface of accumulationRef.current.keys()) {
+                if (target.contains(surface)) {
+                    markRectsDirty(false);
+                    return;
+                }
+            }
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+
         // Observe DOM mutations to detect new/removed elements
         const mutationObserver = new MutationObserver((mutations) => {
             // Check if any mutations actually added or removed element nodes (not text/attributes)
@@ -171,10 +192,12 @@ export default function Snowfall() {
             }
             stopAnimation();
             window.removeEventListener('resize', handleResize);
+            window.removeEventListener('scroll', handleScroll);
+            document.removeEventListener('scroll', handleScroll, { capture: true });
             mutationObserver.disconnect();
             surfaceObserver.disconnect();
         };
-    }, [isMounted]);
+    }, [canvasRef, isMounted, markRectsDirty, metricsRef, resizeCanvas, startAnimation, stopAnimation]);
 
     if (!isMounted) return null;
 

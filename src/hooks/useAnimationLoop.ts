@@ -77,7 +77,10 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         } = paramsRef.current;
 
         const canvas = canvasRef.current;
-        if (!canvas) {
+        if (!canvas || document.visibilityState !== 'visible') {
+            // Reset the clock while hidden so the first visible frame does not
+            // try to simulate the entire time spent in the background.
+            lastTimeRef.current = currentTime;
             animationIdRef.current = requestAnimationFrame(animateRef.current);
             return;
         }
@@ -217,14 +220,16 @@ export function useAnimationLoop(params: UseAnimationLoopParams) {
         cancelAnimationFrame(animationIdRef.current);
     }, []);
 
-    // Mark rects dirty - call on resize or when accumulation elements change
-    const markRectsDirty = useCallback(() => {
+    // Mark rects dirty - call on scroll, resize, or when surfaces change.
+    // Scroll only changes viewport rects; avoid unnecessary document layout reads.
+    const markRectsDirty = useCallback((refreshDimensions = true) => {
         dirtyRectsRef.current = true;
-        // Also refresh cached layout values that cause layout thrashing when read every frame
-        worldSizeRef.current.width = document.documentElement.scrollWidth;
-        worldSizeRef.current.height = document.documentElement.scrollHeight;
-        viewportRef.current.width = window.innerWidth;
-        viewportRef.current.height = window.innerHeight;
+        if (refreshDimensions) {
+            worldSizeRef.current.width = document.documentElement.scrollWidth;
+            worldSizeRef.current.height = document.documentElement.scrollHeight;
+            viewportRef.current.width = window.innerWidth;
+            viewportRef.current.height = window.innerHeight;
+        }
         // Precompute inverse DPR for multiplication in the hot path
         invDprRef.current = 1 / (paramsRef.current.dprRef.current || 1);
     }, []);

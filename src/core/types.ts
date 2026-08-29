@@ -40,8 +40,6 @@ export interface SnowAccumulation {
     /** Side gravity multipliers per bucket row */
     sideGravityMultipliers: Float32Array;
     type: SnowfallSurface;
-    /** Ping-pong buffer for smoothing (Float32Array, same length as heights) */
-    _smoothTemp: Float32Array;
     /** Leftmost bucket index with snow (dirty region lower bound) */
     dirtyMin: number;
     /** Rightmost bucket index with snow (dirty region upper bound) */
@@ -59,6 +57,4 @@ export interface ElementSurface {
     el: Element;
     rect: DOMRect;
     acc: SnowAccumulation;
-    /** Set to true when a collision occurs on this surface — used to skip no-op rect refreshes */
-    hasChanged: boolean;
 }
