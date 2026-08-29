@@ -14,6 +14,9 @@ export interface Snowflake {
     x: number;
     y: number;
     wobble: number;
+    /** Stable values used to derive visual properties when config changes. */
+    dna: number;
+    isBackground: boolean;
     /** Reference to shared visual properties (interned via template cache) */
     visual: SnowflakeVisual;
 }
