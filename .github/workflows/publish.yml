@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'package.json'
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -20,6 +21,7 @@ jobs:
 
       - name: Check if version changed
         id: version-check
+        if: github.event_name == 'push'
         run: |
           git fetch origin ${{ github.event.before }} --depth=1 2>/dev/null || true
           if git diff ${{ github.event.before }} ${{ github.sha }} -- package.json | grep -q '"version"'; then
@@ -28,17 +30,22 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Publish (manual run)
+        id: manual-run
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "changed=true" >> $GITHUB_OUTPUT
+
       - name: Setup Node.js
-        if: steps.version-check.outputs.changed == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.version-check.outputs.changed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22.14.0'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies
-        if: steps.version-check.outputs.changed == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.version-check.outputs.changed == 'true'
         run: npm ci
 
       - name: Publish to NPM
-        if: steps.version-check.outputs.changed == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.version-check.outputs.changed == 'true'
         run: npm publish --access public
