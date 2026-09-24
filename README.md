@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@hdcodedev/snowfall.svg)](https://www.npmjs.com/package/@hdcodedev/snowfall)
 
-> Why? Because some tokens must be burned for fun.
+> Why? Because some tokens must be used for fun.
 
 Cinematic snowfall for React. Tens of thousands of GPU-rendered flakes with depth, gusting wind, motion streaks and haze, plus snow that drifts and piles up on your page.
 
@@ -89,6 +89,3 @@ const snow = new SnowEngine(canvas, 'blizzard');
 // snow.setPreset('off');
 // snow.destroy();
 ```
-
-## License
-[MIT](LICENSE)
