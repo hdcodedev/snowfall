@@ -1,223 +1,55 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useSnowfall } from './SnowfallProvider';
-import { Snowflake, SnowAccumulation } from '../core/types';
-import { initializeAccumulation, clearVisualTemplateCache, refreshSnowflakeVisuals } from '../core/physics';
-import { usePerformanceMetrics } from '../hooks/usePerformanceMetrics';
-import { useSnowfallCanvas } from '../hooks/useSnowfallCanvas';
-import { useAnimationLoop } from '../hooks/useAnimationLoop';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import { SnowEngine } from '../core/engine';
+import { SnowfallPreset } from '../core/presets';
 
-export default function Snowfall() {
-    const { isEnabled, physicsConfig, setMetrics } = useSnowfall();
-    const isEnabledRef = useRef(isEnabled);
-    const physicsConfigRef = useRef(physicsConfig);
-    const setMetricsRef = useRef(setMetrics);
-    const [isMounted, setIsMounted] = useState(false);
-    const [isVisible, setIsVisible] = useState(false);
+export interface SnowfallProps {
+    /**
+     * 'gentle', 'steady' (default), 'blizzard', or 'off'. Switching eases between them
+     * like the weather changing; 'off' stops the snow and lets piles melt.
+     */
+    preset?: SnowfallPreset;
+}
 
-    const snowflakesRef = useRef<Snowflake[]>([]);
-    const accumulationRef = useRef<Map<Element, SnowAccumulation>>(new Map());
+export default function Snowfall({ preset = 'steady' }: SnowfallProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const engineRef = useRef<SnowEngine | null>(null);
 
-    // Canvas setup
-    const { canvasRef, dprRef, resizeCanvas } = useSnowfallCanvas();
-
-    // Performance metrics tracking
-    const { metricsRef, updateFps, getCurrentFps, buildMetrics } = usePerformanceMetrics();
-
-    // Animation loop
-    const { start: startAnimation, stop: stopAnimation, markRectsDirty } = useAnimationLoop({
-        canvasRef,
-        dprRef,
-        snowflakesRef,
-        accumulationRef,
-        isEnabledRef,
-        physicsConfigRef,
-        metricsRef,
-        updateFps,
-        getCurrentFps,
-        buildMetrics,
-        setMetricsRef,
+    // Latest preset, synced before effects run, so a re-mount (Fast Refresh, Strict Mode)
+    // builds the engine with the current preset rather than the first one.
+    const latestPreset = useRef(preset);
+    useLayoutEffect(() => {
+        latestPreset.current = preset;
     });
 
     useEffect(() => {
-        requestAnimationFrame(() => setIsMounted(true));
+        if (!canvasRef.current) return;
+        const engine = new SnowEngine(canvasRef.current, latestPreset.current);
+        engineRef.current = engine;
+        return () => {
+            engine.destroy();
+            engineRef.current = null;
+        };
     }, []);
 
     useEffect(() => {
-        isEnabledRef.current = isEnabled;
-    }, [isEnabled]);
-
-    useEffect(() => {
-        physicsConfigRef.current = physicsConfig;
-        clearVisualTemplateCache();
-        refreshSnowflakeVisuals(snowflakesRef.current, physicsConfig);
-    }, [physicsConfig]);
-
-    useEffect(() => {
-        if (isMounted) {
-            resizeCanvas(physicsConfig.MAX_RENDER_DPR);
-        }
-    }, [isMounted, physicsConfig.MAX_RENDER_DPR, resizeCanvas]);
-
-    useEffect(() => {
-        setMetricsRef.current = setMetrics;
-    }, [setMetrics]);
-
-    useEffect(() => {
-        if (!isMounted) return;
-
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        resizeCanvas(physicsConfigRef.current.MAX_RENDER_DPR);
-
-        snowflakesRef.current = [];
-        let isUnmounted = false;
-        let scheduledInitFrame = 0;
-
-        // Separate observer for snow accumulation surfaces
-        const surfaceObserver = new ResizeObserver((entries) => {
-            // Check if any accumulation element actually changed size
-            let needsUpdate = false;
-            for (const entry of entries) {
-                if (entry.target.isConnected) {
-                    needsUpdate = true;
-                    break;
-                }
-            }
-            if (needsUpdate) {
-                scheduleAccumulationInit();
-            }
-        });
-
-        const initAccumulationWrapper = () => {
-            if (isUnmounted) return;
-            const scanStart = performance.now();
-            initializeAccumulation(accumulationRef.current, physicsConfigRef.current);
-
-            // Sync observer with current surfaces
-            surfaceObserver.disconnect();
-            for (const [el] of accumulationRef.current) {
-                surfaceObserver.observe(el);
-            }
-
-            metricsRef.current.scanTime = performance.now() - scanStart;
-            // Mark rects dirty so they get recalculated on next frame
-            markRectsDirty();
-        };
-
-        const scheduleAccumulationInit = () => {
-            if (scheduledInitFrame !== 0 || isUnmounted) return;
-            scheduledInitFrame = requestAnimationFrame(() => {
-                scheduledInitFrame = 0;
-                initAccumulationWrapper();
-            });
-        };
-        initAccumulationWrapper();
-
-        // Delay visibility slightly to ensure smooth fade-in after canvas is ready
-        requestAnimationFrame(() => {
-            if (!isUnmounted && isMounted) setIsVisible(true);
-        });
-
-        // Start the animation loop
-        startAnimation();
-
-        const handleResize = () => {
-            resizeCanvas(physicsConfigRef.current.MAX_RENDER_DPR);
-            // Just mark rects dirty to recalculate — don't clear accumulation or re-scan DOM.
-            // The accumulation data is still valid after resize, only element positions changed.
-            markRectsDirty();
-        };
-
-        window.addEventListener('resize', handleResize);
-
-        // getBoundingClientRect() is viewport-relative, so cached surfaces must
-        // be refreshed when the document or one of their scroll ancestors moves.
-        const handleScroll = (event: Event) => {
-            const target = event.target;
-            if (target === window || target === document || target === document.documentElement || target === document.body) {
-                markRectsDirty(false);
-                return;
-            }
-
-            if (!(target instanceof Element)) return;
-
-            for (const surface of accumulationRef.current.keys()) {
-                if (target.contains(surface)) {
-                    markRectsDirty(false);
-                    return;
-                }
-            }
-        };
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
-
-        // Observe DOM mutations to detect new/removed elements
-        const mutationObserver = new MutationObserver((mutations) => {
-            // Check if any mutations actually added or removed element nodes (not text/attributes)
-            let hasStructuralChange = false;
-            for (const mutation of mutations) {
-                if (mutation.type !== 'childList') continue;
-                // Skip if the changed node is the canvas itself
-                const targetIsCanvas = mutation.target === canvas;
-                if (targetIsCanvas) continue;
-                // Only count actual element nodes, not text nodes
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeType === Node.ELEMENT_NODE && node !== canvas) {
-                        hasStructuralChange = true;
-                        break;
-                    }
-                }
-                if (hasStructuralChange) break;
-                for (const node of mutation.removedNodes) {
-                    if (node.nodeType === Node.ELEMENT_NODE && node !== canvas) {
-                        hasStructuralChange = true;
-                        break;
-                    }
-                }
-                if (hasStructuralChange) break;
-            }
-            if (hasStructuralChange) {
-                scheduleAccumulationInit();
-            }
-        });
-        mutationObserver.observe(document.body, {
-            childList: true,
-            subtree: true,
-        });
-
-        return () => {
-            isUnmounted = true;
-            if (scheduledInitFrame !== 0) {
-                cancelAnimationFrame(scheduledInitFrame);
-            }
-            stopAnimation();
-            window.removeEventListener('resize', handleResize);
-            window.removeEventListener('scroll', handleScroll);
-            document.removeEventListener('scroll', handleScroll, { capture: true });
-            mutationObserver.disconnect();
-            surfaceObserver.disconnect();
-        };
-    }, [canvasRef, isMounted, markRectsDirty, metricsRef, resizeCanvas, startAnimation, stopAnimation]);
-
-    if (!isMounted) return null;
+        engineRef.current?.setPreset(preset);
+    }, [preset]);
 
     return (
         <canvas
             ref={canvasRef}
+            aria-hidden="true"
             style={{
                 position: 'fixed',
                 top: 0,
                 left: 0,
+                width: '100vw',
+                height: '100vh',
                 pointerEvents: 'none',
                 zIndex: 9999,
-                opacity: isVisible ? 1 : 0,
-                transition: isVisible ? undefined : 'opacity 0.3s ease-in',
-                willChange: isVisible ? undefined : 'opacity',
             }}
-            aria-hidden="true"
         />
     );
 }

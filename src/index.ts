@@ -1,8 +1,8 @@
 'use client';
 
-// Main components
 export { default as Snowfall } from './components/Snowfall';
-export { SnowfallProvider, useSnowfall, DEFAULT_PHYSICS } from './components/SnowfallProvider';
+export type { SnowfallProps } from './components/Snowfall';
+export type { SnowfallPreset } from './core/presets';
 
-// Types
-export type { PhysicsConfig, PerformanceMetrics } from './components/SnowfallProvider';
+// Framework-agnostic runtime, for non-React use
+export { SnowEngine } from './core/engine';

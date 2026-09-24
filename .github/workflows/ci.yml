@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx eslint src tests scripts
+      - run: npm test
+      - run: npm run build
+      # Renders every preset in headless Chrome and fails on errors. No fps thresholds:
+      # CI runners have no GPU, so frame rates there are meaningless.
+      - run: npm run perf -- --smoke
+      - run: npm run perf -- --smoke --canvas2d

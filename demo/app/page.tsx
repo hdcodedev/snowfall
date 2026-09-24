@@ -1,166 +1,71 @@
 'use client';
 
-import CodeBlock from '@/components/CodeBlock';
-import ControlsPanel from '@/components/ControlsPanel';
-import ToggleButton from '@/components/ToggleButton';
+import type { SnowfallPreset } from '@hdcodedev/snowfall';
+import NightScene from '@/components/NightScene';
+import { useDemoSnow } from '@/components/DemoSnow';
+import { useWindSound } from '@/components/useWindSound';
+
+const PRESETS: { value: SnowfallPreset; label: string }[] = [
+  { value: 'gentle', label: 'Gentle' },
+  { value: 'steady', label: 'Steady' },
+  { value: 'blizzard', label: 'Blizzard' },
+  { value: 'off', label: 'Off' },
+];
 
 export default function Home() {
+  const { preset, setPreset } = useDemoSnow();
+  const wind = useWindSound(preset);
+
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <ToggleButton />
-      <ControlsPanel />
+    <main className="relative h-dvh w-full overflow-hidden">
+      <NightScene preset={preset} />
 
-      {/* Main content — offset by sidebar width on desktop */}
-      <div className="md:ml-64">
+      {/* The scene speaks for itself; the heading stays for screen readers and search. */}
+      <h1 className="sr-only">Snowfall: cozy, cinematic snow for React</h1>
 
-      {/* Hero */}
-      <section className="relative min-h-screen flex flex-col justify-center px-8 md:px-16 lg:px-24">
-        <div className="max-w-3xl">
-          <h1 className="animate-frost-rise font-display text-6xl md:text-8xl lg:text-[10rem] font-light text-frost leading-[0.85] tracking-tight mb-8">
-            Snowfall
-          </h1>
+      {/* Links */}
+      <nav className="absolute right-6 top-6 md:right-12 md:top-12 flex items-baseline gap-5 text-[11px] uppercase tracking-[0.2em] text-cream-muted">
+        <span className="font-display text-lg normal-case italic tracking-normal text-moon">Snowfall</span>
+        <a href="https://github.com/hdcodedev/snowfall" target="_blank" rel="noopener noreferrer" className="hover:text-ember transition-colors">GitHub</a>
+        <a href="https://www.npmjs.com/package/@hdcodedev/snowfall" target="_blank" rel="noopener noreferrer" className="hover:text-ember transition-colors">npm</a>
+      </nav>
 
-          <p className="animate-frost-rise delay-300 font-body text-base md:text-lg font-light text-frost-muted max-w-md leading-relaxed mb-10">
-            Realistic accumulation on surfaces.
-            Wind, melting, and border-radius awareness.
-          </p>
-
-          <div className="animate-frost-rise delay-500 flex items-center gap-5">
-            <a
-              href="#installation"
-              data-snowfall="top"
-              className="font-body text-sm font-medium text-twilight bg-glacier hover:bg-glacier-bright px-7 py-3 transition-colors duration-300"
-            >
-              Install
-            </a>
-          </div>
+      {/* Preset picker and wind sound */}
+      <div className="absolute inset-x-0 bottom-6 md:bottom-10 flex flex-wrap items-center justify-center gap-2 px-4">
+        <div
+          role="radiogroup"
+          aria-label="Snow preset"
+          data-snowfall="top"
+          className="animate-rise delay-400 flex gap-1 rounded-full border border-rim bg-night/80 p-1 shadow-2xl"
+        >
+          {PRESETS.map((p) => {
+            const selected = p.value === preset;
+            return (
+              <button
+                key={p.value}
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setPreset(p.value)}
+                className={`rounded-full px-4 md:px-5 py-2 text-xs md:text-sm transition-colors focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ember ${
+                  selected ? 'bg-ember text-night font-medium' : 'text-cream hover:text-ember'
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
         </div>
-      </section>
-
-      {/* Live demo — snow accumulates on these surfaces */}
-      <section className="py-24 md:py-40 px-8 md:px-16 lg:px-24">
-        <div className="max-w-3xl">
-          <h2 className="animate-frost-rise font-display text-4xl md:text-6xl font-light text-frost leading-[0.95] mb-6">
-            Watch it
-            <br />
-            <span className="text-glacier-dim">accumulate.</span>
-          </h2>
-          <p className="animate-frost-rise delay-200 font-body text-sm font-light text-frost-muted leading-relaxed mb-16">
-            Snow detects surface edges and piles up naturally. Toggle it off and on to reset.
-          </p>
-
-          <div className="space-y-6">
-            <header
-              data-snowfall="bottom"
-              className="animate-frost-scale delay-300 frost-surface p-8 md:p-10"
-            >
-              <h3 className="font-display text-2xl md:text-3xl font-light text-frost mb-3">
-                Header
-              </h3>
-              <p className="font-body text-sm font-light text-frost-muted leading-relaxed">
-                Snow clings to the underside — as if drifting beneath an overhang.
-              </p>
-            </header>
-
-            <footer
-              data-snowfall="top"
-              className="animate-frost-scale delay-400 frost-surface p-8 md:p-10"
-            >
-              <h3 className="font-display text-2xl md:text-3xl font-light text-frost mb-3">
-                Footer
-              </h3>
-              <p className="font-body text-sm font-light text-frost-muted leading-relaxed">
-                Snow settles on horizontal surfaces and stacks upward naturally.
-              </p>
-            </footer>
-
-            <div
-              data-snowfall="top"
-              className="animate-frost-scale delay-500 frost-surface p-8 md:p-10"
-            >
-              <h3 className="font-display text-2xl md:text-3xl font-light text-frost mb-3">
-                Any Element
-              </h3>
-              <p className="font-body text-sm font-light text-frost-muted leading-relaxed">
-                Add <code className="text-glacier text-xs">data-snowfall=&quot;top&quot;</code> to any element. Snow accumulates automatically.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Installation */}
-      <section id="installation" className="py-24 md:py-40 px-8 md:px-16 lg:px-24">
-        <div className="max-w-2xl">
-          <h2 className="animate-frost-rise font-display text-5xl md:text-7xl font-light text-frost leading-[0.9] mb-14">
-            Three lines to start.
-          </h2>
-
-          <div className="animate-frost-scale delay-200 space-y-4">
-            <div data-snowfall="top">
-              <CodeBlock
-                code="npm install @hdcodedev/snowfall"
-                className="frost-surface"
-                language="bash"
-              />
-            </div>
-
-            <div>
-              <CodeBlock
-                code={`import { Snowfall, SnowfallProvider } from '@hdcodedev/snowfall';
-
-function App() {
-  return (
-    <SnowfallProvider>
-      <Snowfall />
-      <header>My Site</header>
-    </SnowfallProvider>
-  );
-}`}
-                className="frost-surface"
-                language="tsx"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer
-        data-snowfall="top"
-        className="border-t border-thin-ice py-14 md:py-20 px-8 md:px-16 lg:px-24"
-      >
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <span className="font-display text-lg font-light text-frost-dim">Snowfall</span>
-            <span className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-dim">
-              MIT
-            </span>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <a
-              href="https://github.com/hdcodedev/snowfall"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-dim hover:text-glacier transition-colors duration-300"
-            >
-              GitHub
-            </a>
-            <a
-              href="https://www.npmjs.com/package/@hdcodedev/snowfall"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-body text-[10px] uppercase tracking-[0.2em] text-frost-dim hover:text-glacier transition-colors duration-300"
-            >
-              npm
-            </a>
-          </div>
-        </div>
-      </footer>
-
+        <button
+          onClick={wind.toggle}
+          aria-pressed={wind.enabled}
+          aria-label={wind.enabled ? 'Turn wind sound off' : 'Turn wind sound on'}
+          className={`animate-rise delay-400 rounded-full border border-rim bg-night/80 px-4 md:px-5 py-2 text-xs md:text-sm shadow-2xl transition-colors focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ember ${
+            wind.enabled ? 'text-ember' : 'text-cream hover:text-ember'
+          }`}
+        >
+          {wind.enabled ? 'Sound on' : 'Sound off'}
+        </button>
       </div>
-      {/* End main content wrapper */}
-    </div>
+    </main>
   );
 }
