@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Snowfall perf</title>
+<style>
+  body { margin: 0; background: #0c111b; color: #e6edf6; font: 15px/1.6 system-ui, sans-serif; }
+  header { display: flex; justify-content: space-between; padding: 16px 32px; background: #121a28; border-bottom: 1px solid #2a3547; }
+  main { max-width: 1100px; margin: 0 auto; padding: 80px 24px; }
+  h1 { font-size: 72px; font-weight: 300; margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin: 60px 0; }
+  .card { background: #1a2332; border: 1px solid #2a3547; border-radius: 14px; padding: 28px; min-height: 180px; }
+  .wide { background: #151d2b; border: 1px solid #2a3547; padding: 40px; }
+  button { background: #9cc4ec; border: 0; padding: 12px 24px; border-radius: 6px; font: inherit; }
+  footer { background: #0f1622; border-top: 1px solid #2a3547; padding: 60px 32px; text-align: center; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
+</style>
+</head>
+<body>
+<canvas id="snow" aria-hidden="true"></canvas>
+<header><b>Perf page</b><button data-snowfall="top">Button</button></header>
+<main>
+  <h1>Snowfall performance</h1>
+  <p>Typical content: a header, cards with rounded corners, a wide panel, a button and a footer.</p>
+  <div class="grid">
+    <article class="card"><h3>One</h3><p>Card with a border radius.</p></article>
+    <article class="card"><h3>Two</h3><p>Card with a border radius.</p></article>
+    <article class="card"><h3>Three</h3><p>Card with a border radius.</p></article>
+  </div>
+  <section class="wide" data-snowfall="top"><h3>Wide panel</h3><button data-snowfall="top">Call to action</button></section>
+  <div class="grid">
+    <article class="card"><h3>Four</h3></article>
+    <article class="card"><h3>Five</h3></article>
+    <article class="card"><h3>Six</h3></article>
+  </div>
+</main>
+<footer>Footer</footer>
+<script type="module" src="./page.js"></script>
+</body>
+</html>

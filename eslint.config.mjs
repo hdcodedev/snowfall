@@ -41,4 +41,14 @@ export default [
             },
         },
     },
+    {
+        // Node scripts (perf runner) and tests may use Node globals and log freely.
+        files: ['scripts/**/*.mjs'],
+        languageOptions: { globals: { ...globals.node, ...globals.browser } },
+        rules: { 'no-console': 'off' },
+    },
+    {
+        files: ['**/*.test.ts'],
+        rules: { 'no-console': 'off' },
+    },
 ];

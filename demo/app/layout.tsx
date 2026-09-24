@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { Snowfall, SnowfallProvider } from '@hdcodedev/snowfall';
+import { DemoSnow } from '@/components/DemoSnow';
 import { Analytics } from "@vercel/analytics/next";
 
 const display = Cormorant_Garamond({
@@ -9,21 +9,22 @@ const display = Cormorant_Garamond({
   subsets: ["latin"],
   display: "swap",
   weight: ["300"],
+  style: ["normal", "italic"],
 });
 
 const body = Space_Grotesk({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
-  weight: ["300", "500", "600"],
+  weight: ["300", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "Snowfall — Realistic Snow Physics for React",
-  description: "A refined snowfall effect with physics-based accumulation, wind, melting, and surface detection. Built for React.",
+  title: "Snowfall — Cozy Snow for React",
+  description: "GPU-rendered snowfall for React: depth, gusting wind, drifting piles on your elements. One prop, three presets.",
   openGraph: {
-    title: "Snowfall — Realistic Snow Physics for React",
-    description: "Physics-based snow accumulation with wind, melting, and smart surface detection.",
+    title: "Snowfall — Cozy Snow for React",
+    description: "GPU-rendered snowfall with drifting piles. One prop, three presets.",
   },
 };
 
@@ -33,14 +34,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
         className={`${display.variable} ${body.variable} antialiased`}
       >
-        <SnowfallProvider>
-          <Snowfall />
-          {children}
-        </SnowfallProvider>
+        <DemoSnow>{children}</DemoSnow>
         <Analytics />
       </body>
     </html>

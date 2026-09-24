@@ -8,7 +8,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       root-all-deps:
         patterns:
@@ -24,7 +24,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/demo"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       demo-all-deps:
         patterns:

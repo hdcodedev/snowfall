@@ -1,7 +1,7 @@
 {
     "name": "@hdcodedev/snowfall",
     "version": "1.0.17",
-    "description": "Realistic snowfall effect for React with physics-based accumulation on surfaces. Features melting, wind, and smart surface detection.",
+    "description": "Cinematic GPU snowfall for React: depth, gusting wind, streaks, haze, and snow that drifts and piles up on your page. One prop, three presets.",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
@@ -20,7 +20,9 @@
     "scripts": {
         "build": "tsup",
         "dev": "tsup --watch",
-        "lint": "eslint src demo",
+        "lint": "eslint src tests scripts demo",
+        "test": "vitest run",
+        "perf": "node scripts/perf/run.mjs",
         "prepublishOnly": "npm run build"
     },
     "keywords": [
@@ -29,7 +31,7 @@
         "snowfall",
         "canvas",
         "winter",
-        "physics",
+        "webgl",
         "animation",
         "holiday"
     ],
@@ -42,7 +44,7 @@
         "url": "https://github.com/hdcodedev/snowfall/issues"
     },
     "homepage": "https://github.com/hdcodedev/snowfall#readme",
-    "license": "Apache-2.0",
+    "license": "MIT",
     "peerDependencies": {
         "react": "^18.0.0 || ^19.0.0",
         "react-dom": "^18.0.0 || ^19.0.0"
@@ -51,14 +53,17 @@
         "@eslint/js": "^9.39.2",
         "@types/react": "^19.2.7",
         "@types/react-dom": "^19.2.3",
+        "esbuild": "^0.28.2",
         "eslint": "^9.39.2",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^7.0.1",
         "globals": "^17.3.0",
+        "jsdom": "^30.1.1",
         "react": "^19.2.3",
         "react-dom": "^19.2.3",
         "tsup": "^8.3.5",
         "typescript": "^6.0.2",
-        "typescript-eslint": "^8.50.1"
+        "typescript-eslint": "^8.50.1",
+        "vitest": "^5.0.1"
     }
 }

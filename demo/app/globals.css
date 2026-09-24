@@ -1,195 +1,106 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 @theme inline {
-  /* ── Glacial Palette ── */
-  --color-twilight: oklch(0.07 0.015 265);
-  --color-abyss: oklch(0.05 0.01 265);
-  --color-surface: oklch(0.12 0.025 265);
-
-  /* ── Ice Whites ── */
-  --color-frost: oklch(0.92 0.015 260);
-  --color-frost-muted: oklch(0.60 0.025 260);
-  --color-frost-dim: oklch(0.42 0.025 260);
-
-  /* ── Glacier Blue ── */
-  --color-glacier: oklch(0.72 0.12 240);
-  --color-glacier-bright: oklch(0.82 0.14 245);
-  --color-glacier-dim: oklch(0.55 0.08 240);
-
-  /* ── Copper Warmth ── */
-  --color-copper: oklch(0.62 0.10 55);
-  --color-copper-dim: oklch(0.50 0.08 55);
-
-  /* ── Borders ── */
-  --color-thin-ice: oklch(0.22 0.03 265);
-  --color-crack: oklch(0.30 0.04 265);
+  /* ── Night palette ── */
+  --color-night: #070b1f;
+  --color-moon: #f6efd4;
+  --color-cream: #efe6cf;
+  --color-cream-muted: #b9b3a3;
+  --color-ember: #ffc46b;
+  --color-rim: rgba(239, 230, 207, 0.14);
 
   /* ── Typography ── */
   --font-display: 'Cormorant Garamond', serif;
   --font-body: 'Space Grotesk', sans-serif;
 }
 
-:root {
-  --background: oklch(0.07 0.015 265);
-  --foreground: oklch(0.92 0.015 260);
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-night);
+  color: var(--color-cream);
   font-family: var(--font-body);
 }
 
-/* ── Entrance Animations ── */
-
-@keyframes frost-rise {
-  from {
-    opacity: 0;
-    transform: translateY(32px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes frost-scale {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-frost-rise {
-  animation: frost-rise 1s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-frost-scale {
-  animation: frost-scale 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* ── Stagger Delays ── */
-.delay-200 { animation-delay: 200ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
-.delay-500 { animation-delay: 500ms; }
-
-/* ── Frosted surface ── */
-
-.frost-surface {
-  background: color-mix(in oklch, var(--color-surface) 80%, transparent);
-  border: 1px solid var(--color-thin-ice);
-}
-
-.frost-surface:hover {
-  border-color: var(--color-crack);
-}
-
-/* ── Selection, Scrollbar, Accessibility ── */
-
 ::selection {
-  background: color-mix(in oklch, var(--color-glacier) 25%, transparent);
-  color: var(--color-frost);
+  background: rgba(255, 196, 107, 0.3);
+  color: var(--color-moon);
 }
 
-html {
-  scroll-behavior: smooth;
+/* ── Scene ── */
+
+/* Covers the viewport like preserveAspectRatio="xMidYMax slice": 16:9, anchored to the bottom. */
+.scene {
+  --scene-width: max(100vw, 177.78vh);
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: var(--scene-width);
+  aspect-ratio: 16 / 9;
+  transform: translateX(-50%);
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/*
+ * The only animation: chimney smoke. Each puff follows the same curve (rises first, then
+ * bends with the wind) while growing and fading; many staggered puffs form a steady plume.
+ * Offsets are percentages of the puff's own size, so they scale with the scene, and the
+ * keyframes use plain values (no CSS variables) so the browser can run them on the GPU.
+ * One curve per preset: upright when gentle, bent low and sideways in a blizzard.
+ */
+@keyframes scene-smoke-gentle {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  4% { opacity: 0.5; }
+  30% { transform: translate(9%, -205%) scale(0.9); opacity: 0.5; }
+  60% { transform: translate(45%, -450%) scale(1.6); opacity: 0.3; }
+  100% { transform: translate(114%, -682%) scale(2.6); opacity: 0; }
 }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+@keyframes scene-smoke-steady {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  4% { opacity: 0.5; }
+  30% { transform: translate(24%, -184%) scale(0.9); opacity: 0.5; }
+  60% { transform: translate(118%, -405%) scale(1.6); opacity: 0.3; }
+  100% { transform: translate(295%, -614%) scale(2.6); opacity: 0; }
 }
 
-::-webkit-scrollbar {
-  width: 6px;
+@keyframes scene-smoke-blizzard {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  4% { opacity: 0.5; }
+  30% { transform: translate(76%, -95%) scale(0.9); opacity: 0.5; }
+  60% { transform: translate(382%, -210%) scale(1.6); opacity: 0.3; }
+  100% { transform: translate(955%, -318%) scale(2.6); opacity: 0; }
 }
 
-::-webkit-scrollbar-track {
-  background: var(--color-abyss);
+@keyframes scene-smoke-off {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  4% { opacity: 0.5; }
+  30% { transform: translate(5%, -218%) scale(0.9); opacity: 0.5; }
+  60% { transform: translate(27%, -480%) scale(1.6); opacity: 0.3; }
+  100% { transform: translate(68%, -727%) scale(2.6); opacity: 0; }
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--color-thin-ice);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-crack);
-}
-
-/* ── Range Slider ── */
-
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 1px;
-  background: var(--color-crack);
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
+.scene-smoke {
+  position: absolute;
+  aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--color-glacier);
-  border: 2px solid var(--color-twilight);
-  margin-top: -5.5px;
-  transition: transform 0.15s ease;
+  background: radial-gradient(closest-side, rgba(214, 219, 234, 0.6), rgba(170, 178, 205, 0.25) 55%, rgba(154, 163, 194, 0) 100%);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
 }
 
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.3);
+/* ── Entrance ── */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-input[type="range"]::-moz-range-track {
-  height: 1px;
-  background: var(--color-crack);
+.animate-rise {
+  animation: rise 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-input[type="range"]::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--color-glacier);
-  border: 2px solid var(--color-twilight);
-  transition: transform 0.15s ease;
-}
-
-input[type="range"]::-moz-range-thumb:hover {
-  transform: scale(1.3);
-}
-
-/* ── Accessibility ── */
-
-:focus-visible {
-  outline: 1px solid var(--color-glacier);
-  outline-offset: 3px;
-  border-radius: 2px;
-}
-
-/* ── Reduced Motion ── */
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-frost-rise,
-  .animate-frost-scale {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-}
+.delay-400 { animation-delay: 400ms; }
