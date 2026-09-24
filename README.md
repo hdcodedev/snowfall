@@ -6,7 +6,8 @@
 
 Cinematic snowfall for React. Tens of thousands of GPU-rendered flakes with depth, gusting wind, motion streaks and haze, plus snow that drifts and piles up on your page.
 
-<img width="1391" height="843" alt="Snowfall demo" src="https://github.com/user-attachments/assets/b7a420c6-0fb2-4255-afec-29e60444d198" />
+<img width="1676" height="805" alt="Screenshot 2026-09-24 at 23 05 31" src="https://github.com/user-attachments/assets/3a59dd6e-8809-4d69-b5e7-f33bb0fd9022" />
+
 
 ## Installation
 
