@@ -1,6 +1,6 @@
 {
     "name": "@hdcodedev/snowfall",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "description": "Cinematic GPU snowfall for React: depth, gusting wind, streaks, haze, and snow that drifts and piles up on your page. One prop, three presets.",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
