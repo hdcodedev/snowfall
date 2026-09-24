@@ -2,9 +2,9 @@
 
 [![npm version](https://img.shields.io/npm/v/@hdcodedev/snowfall.svg)](https://www.npmjs.com/package/@hdcodedev/snowfall)
 
-> Why? Because some tokens must be used for fun.
+> Why? Because some tokens must be used for fun :).
 
-Cinematic snowfall for React. Tens of thousands of GPU-rendered flakes with depth, gusting wind, motion streaks and haze, plus snow that drifts and piles up on your page.
+GPU-rendered flakes with depth, gusting wind and haze, plus snow that drifts and piles up.
 
 <img width="1676" height="805" alt="Screenshot 2026-09-24 at 23 05 31" src="https://github.com/user-attachments/assets/3a59dd6e-8809-4d69-b5e7-f33bb0fd9022" />
 
