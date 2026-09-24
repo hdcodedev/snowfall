@@ -3,7 +3,7 @@
 import type { SnowfallPreset } from '@hdcodedev/snowfall';
 import NightScene from '@/components/NightScene';
 import { useDemoSnow } from '@/components/DemoSnow';
-import { SOUND_TOGGLE_ATTR, useWindSound } from '@/components/useWindSound';
+import { useWindSound } from '@/components/useWindSound';
 
 const PRESETS: { value: SnowfallPreset; label: string }[] = [
   { value: 'gentle', label: 'Gentle' },
@@ -57,7 +57,6 @@ export default function Home() {
         </div>
         <button
           onClick={wind.toggle}
-          {...{ [SOUND_TOGGLE_ATTR]: '' }}
           aria-pressed={wind.enabled}
           aria-label={wind.enabled ? 'Turn wind sound off' : 'Turn wind sound on'}
           className={`animate-rise delay-400 rounded-full border border-rim bg-night/80 px-4 md:px-5 py-2 text-xs md:text-sm shadow-2xl transition-colors focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ember ${

@@ -114,17 +114,9 @@ function makeGusts() {
     };
 }
 
-/** Marks the sound button, so a first click on it counts as "turn off" rather than "unlock". */
-export const SOUND_TOGGLE_ATTR = 'data-sound-toggle';
-
-/**
- * On by default. Browsers only allow audio after a user gesture, so the wind starts at the
- * visitor's first interaction anywhere on the page (click, tap or key press).
- */
+/** Off by default; the button's click turns it on (browsers only allow audio after a user gesture). */
 export function useWindSound(preset: SnowfallPreset) {
-    const [enabled, setEnabled] = useState(true);
-    // True once a user gesture has created the audio graph.
-    const [unlocked, setUnlocked] = useState(false);
+    const [enabled, setEnabled] = useState(false);
     const graphRef = useRef<WindGraph | null>(null);
     const presetRef = useRef(preset);
     const suspendTimer = useRef(0);
@@ -133,46 +125,10 @@ export function useWindSound(preset: SnowfallPreset) {
         presetRef.current = preset;
     }, [preset]);
 
-    /** Build the audio graph; must run inside a user gesture. */
-    const unlock = useCallback(() => {
-        if (!graphRef.current) graphRef.current = buildGraph();
-        setUnlocked(true);
-    }, []);
-
-    // Start at the first interaction anywhere on the page (except the sound button itself).
-    useEffect(() => {
-        if (!enabled || unlocked) return;
-        const onGesture = (event: Event) => {
-            if (event.target instanceof Element && event.target.closest(`[${SOUND_TOGGLE_ATTR}]`)) return;
-            unlock();
-        };
-        const events = ['pointerdown', 'keydown', 'touchstart'] as const;
-        for (const type of events) window.addEventListener(type, onGesture, { once: true, capture: true });
-        return () => {
-            for (const type of events) window.removeEventListener(type, onGesture, { capture: true });
-        };
-    }, [enabled, unlocked, unlock]);
-
-    // Fade in or out when sound is switched on or off.
-    useEffect(() => {
-        const graph = graphRef.current;
-        if (!unlocked || !graph) return;
-        const now = graph.ctx.currentTime;
-        window.clearTimeout(suspendTimer.current);
-        if (enabled) {
-            void graph.ctx.resume();
-            graph.master.gain.setTargetAtTime(1, now, 0.4);
-        } else {
-            // Fade out, then pause the audio thread entirely.
-            graph.master.gain.setTargetAtTime(0, now, 0.2);
-            suspendTimer.current = window.setTimeout(() => void graph.ctx.suspend(), 800);
-        }
-    }, [enabled, unlocked]);
-
     // Follow the preset and the gusts while sound is on.
     useEffect(() => {
         const graph = graphRef.current;
-        if (!enabled || !unlocked || !graph) return;
+        if (!enabled || !graph) return;
         const { ctx } = graph;
         const gustAt = makeGusts();
         // Eased copy of the current profile so preset changes crossfade.
@@ -196,7 +152,7 @@ export function useWindSound(preset: SnowfallPreset) {
         tick();
         const id = window.setInterval(tick, TICK_MS);
         return () => window.clearInterval(id);
-    }, [enabled, unlocked]);
+    }, [enabled]);
 
     // Pause in background tabs; nobody wants wind from a tab they can't see.
     useEffect(() => {
@@ -216,11 +172,21 @@ export function useWindSound(preset: SnowfallPreset) {
         graphRef.current = null;
     }, []);
 
-    /** Called from the sound button's click, which also counts as the unlocking gesture. */
+    /** Must be called from a click: browsers only allow audio after a user gesture. */
     const toggle = useCallback(() => {
-        unlock();
-        setEnabled((on) => !on);
-    }, [unlock]);
+        const graph = graphRef.current ?? (graphRef.current = buildGraph());
+        const now = graph.ctx.currentTime;
+        window.clearTimeout(suspendTimer.current);
+        if (enabled) {
+            // Fade out, then pause the audio thread entirely.
+            graph.master.gain.setTargetAtTime(0, now, 0.2);
+            suspendTimer.current = window.setTimeout(() => void graph.ctx.suspend(), 800);
+        } else {
+            void graph.ctx.resume();
+            graph.master.gain.setTargetAtTime(1, now, 0.4);
+        }
+        setEnabled(!enabled);
+    }, [enabled]);
 
     return { enabled, toggle };
 }
